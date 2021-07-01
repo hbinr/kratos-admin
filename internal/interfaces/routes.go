@@ -15,7 +15,7 @@ func RegisterHTTPServer(
 		userGrp.POST("/signup", us.Signup)
 		userGrp.GET("/list", us.List)
 		userGrp.GET("/", us.Get)
-		userGrp.DELETE("/", us.Delte)
+		userGrp.DELETE("/", us.Delete)
 	}
 
 	return router
