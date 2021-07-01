@@ -4,7 +4,7 @@ import (
 	"context"
 	"kratos-admin/internal/biz"
 	"kratos-admin/internal/pkg/constant/e"
-	"kratos-admin/internal/pkg/hashx"
+	"kratos-admin/pkg/util/hashx"
 	"kratos-admin/pkg/util/pagination"
 	"kratos-admin/pkg/util/uuidx"
 
@@ -45,20 +45,21 @@ func (u *UserPO) TableName() string {
 	return "user"
 }
 
-func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (string, error) {
+func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userId string, err error) {
 	var po = UserPO{}
-	if err := copier.Copy(&po, do); err != nil {
-		return "", err
+	if err = copier.Copy(&po, do); err != nil {
+		return
 	}
 
-	po.Password = hashx.MD5String(do.Password)
+	po.Password, err = hashx.HashPassword(do.Password)
 	po.UserId = uuidx.GenID()
 
-	if err := u.data.db.WithContext(ctx).Create(&po).Error; err != nil {
-		return "", errors.Wrap(err, "data: Create user failed")
+	if err = u.data.db.WithContext(ctx).Create(&po).Error; err != nil {
+		err = errors.Wrap(err, "data: Create user failed")
+		return
 	}
-
-	return po.UserId, nil
+	userId = po.UserId
+	return
 }
 
 func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (*biz.UserDO, error) {
@@ -78,7 +79,15 @@ func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (*biz.UserDO,
 }
 
 func (u *userRepo) DeleteUser(ctx context.Context, userId string) error {
-	return u.data.db.WithContext(ctx).Where("user_id = ?", userId).Delete(&UserPO{}).Error
+	result := u.data.db.WithContext(ctx).Where("user_id = ?", userId).Delete(&UserPO{})
+	if result.Error != nil {
+		return errors.Wrapf(result.Error, "data: deleted user failed, userID[%s]", userId)
+	}
+
+	if result.RowsAffected <= 0 {
+		return e.ErrUserHasDeleted
+	}
+	return nil
 }
 
 func (u *userRepo) GetUser(ctx context.Context, userId string) (*biz.UserDO, error) {
@@ -140,4 +149,15 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize int64) (doLis
 	}
 
 	return
+}
+
+func (u *userRepo) VerifyPassword(ctx context.Context, do *biz.UserDO) (bool, error) {
+	var po UserPO
+	res := u.data.db.WithContext(ctx).Where("user_name = ?", do.UserName).Find(&po)
+	if res.Error != nil {
+		return false, res.Error
+	}
+
+	return hashx.CheckPasswordHash(do.Password, po.Password), nil
+
 }

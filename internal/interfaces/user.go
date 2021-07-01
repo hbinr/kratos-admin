@@ -114,9 +114,12 @@ func (u *UserUseCase) Delete(c *gin.Context) {
 	}
 	res, err := u.userService.DeleteUser(context.Background(), &req)
 
-	if err != nil {
+	switch err {
+	case nil:
+		ginx.RespSuccess(c, res)
+	case e.ErrUserHasDeleted:
+		ginx.RespError(c, e.CodeUserHasDeleted)
+	default:
 		ginx.RespError(c, e.CodeInternalError)
-		return
 	}
-	ginx.RespSuccess(c, res)
 }

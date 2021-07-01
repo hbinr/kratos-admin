@@ -34,6 +34,7 @@ type UserRepo interface {
 	DeleteUser(context.Context, string) error
 	GetUser(ctx context.Context, userId string) (*UserDO, error)
 	ListUser(ctx context.Context, pageNum, pageSize int64) ([]*UserDO, error)
+	VerifyPassword(context.Context, *UserDO) (bool, error)
 }
 
 func NewUserBiz(repo UserRepo, logger log.Logger) *UserBiz {

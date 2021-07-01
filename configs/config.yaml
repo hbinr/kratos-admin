@@ -14,5 +14,9 @@ data:
     max_idle_conns: 10
   redis:
     addr: 127.0.0.1:6379
+    password: ""
+    db: 0
+    pool_size: 100
+    min_idle_conns: 5
     read_timeout: 0.2s
     write_timeout: 0.2s
