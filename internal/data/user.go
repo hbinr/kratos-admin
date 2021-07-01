@@ -77,19 +77,25 @@ func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (*biz.UserDO,
 	}, err
 }
 
-func (u *userRepo) DeleteUser(ctx context.Context, do *biz.UserDO) error {
-	return u.data.db.WithContext(ctx).Where("user_id = ?", do.UserId).Delete(&UserPO{}).Error
+func (u *userRepo) DeleteUser(ctx context.Context, userId string) error {
+	return u.data.db.WithContext(ctx).Where("user_id = ?", userId).Delete(&UserPO{}).Error
 }
 
-func (u *userRepo) GetUser(ctx context.Context, userID string) (*biz.UserDO, error) {
-	var userPO UserPO
-	err := u.data.db.WithContext(ctx).
-		Where("user_id = ?", userID).
-		Find(&userPO).Error
+func (u *userRepo) GetUser(ctx context.Context, userId string) (*biz.UserDO, error) {
+	var (
+		userPO UserPO
+		do     biz.UserDO
+	)
+	result := u.data.db.WithContext(ctx).
+		Where("user_id = ?", userId).
+		Find(&userPO)
 
-	switch err {
+	if result.RowsAffected == 0 {
+		return nil, e.ErrNotFound
+	}
+
+	switch result.Error {
 	case nil:
-		var do biz.UserDO
 
 		if err := copier.Copy(&do, userPO); err != nil {
 			return nil, err
@@ -99,21 +105,27 @@ func (u *userRepo) GetUser(ctx context.Context, userID string) (*biz.UserDO, err
 	case gorm.ErrRecordNotFound:
 		return nil, e.ErrNotFound
 	default:
-		return nil, err
+		return nil, result.Error
 	}
 }
 
-func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize int64) ([]*biz.UserDO, error) {
+func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize int64) (doList []*biz.UserDO, err error) {
 	var poList []UserPO
 	result := u.data.db.WithContext(ctx).
 		Limit(int(pageSize)).
 		Offset(int(pagination.GetPageOffset(pageNum, pageSize))).
 		Find(&poList)
-	if result.Error != nil {
-		return nil, result.Error
+
+	if result.RowsAffected == 0 {
+		return nil, e.ErrNotFound
 	}
 
-	doList := make([]*biz.UserDO, 0)
+	if result.Error != nil {
+		err = result.Error
+		return
+	}
+
+	doList = make([]*biz.UserDO, 0)
 	for _, po := range poList {
 		doList = append(doList, &biz.UserDO{
 			UserId:    po.UserId,
@@ -127,5 +139,5 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize int64) ([]*bi
 		})
 	}
 
-	return doList, nil
+	return
 }

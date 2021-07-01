@@ -29,75 +29,85 @@ func NewUserService(uc *biz.UserBiz, logger log.Logger) *UserService {
 	return &UserService{userBiz: uc, log: log.NewHelper(logger)}
 }
 
-func (us *UserService) CreateUser(ctx context.Context, req *pb.CreateUserReq) (*pb.CreateUserReply, error) {
-	var userDO biz.UserDO
+func (us *UserService) CreateUser(ctx context.Context, req *pb.CreateUserReq) (reply *pb.CreateUserReply, err error) {
+	var (
+		userDO biz.UserDO
+		userId string
+	)
 
-	if err := copier.Copy(&userDO, req); err != nil {
+	if err = copier.Copy(&userDO, req); err != nil {
 		return nil, errors.Wrap(err, "service: copier.Copy(&userDO, req) failed")
 	}
 
-	userID, err := us.userBiz.Create(ctx, &userDO)
-
-	if err != nil {
+	if userId, err = us.userBiz.Create(ctx, &userDO); err != nil {
 		return nil, errors.WithMessagef(err, "service: Create User failed, userName: [%s]", req.UserName)
 	}
-
-	return &pb.CreateUserReply{UserId: userID}, nil
+	reply = new(pb.CreateUserReply)
+	reply.UserId = userId
+	return
 }
 
-func (us *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserReq) (*pb.UpdateUserReply, error) {
+func (us *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserReq) (reply *pb.UpdateUserReply, err error) {
 	var userDO biz.UserDO
-	if err := copier.Copy(&userDO, req); err != nil {
-		return nil, err
+
+	if err = copier.Copy(&userDO, req); err != nil {
+		return
 	}
 
 	result, err := us.userBiz.Update(ctx, &userDO)
 
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return &pb.UpdateUserReply{
-		Id:       int64(result.Id),
-		UserName: result.UserName,
-	}, nil
+	reply = new(pb.UpdateUserReply)
+	if err = copier.Copy(&reply, result); err != nil {
+		return
+	}
+
+	return
+}
+func (us *UserService) DeleteUser(ctx context.Context, req *pb.DeleteUserReq) (reply *pb.DeleteUserReply, err error) {
+	reply = &pb.DeleteUserReply{Ok: true}
+	if err = us.userBiz.Delete(ctx, req.UserId); err != nil {
+		reply.Ok = false
+		return
+	}
+
+	return
 }
 
-func (us *UserService) DeleteUser(ctx context.Context, req *pb.DeleteUserReq) (*pb.DeleteUserReply, error) {
-	return &pb.DeleteUserReply{}, nil
-}
-
-func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (*pb.GetUserReply, error) {
+func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (reply *pb.GetUserReply, err error) {
 	var (
-		err       error
-		userRes   *biz.UserDO
-		userReply pb.GetUserReply
+		userRes *biz.UserDO
 	)
 	if userRes, err = us.userBiz.Get(ctx, req.GetUserId()); err != nil {
-		return nil, errors.Wrap(err, "service: Get user failed")
+		return nil, err
 	}
 
-	if err := copier.Copy(&userReply, userRes); err != nil {
-		return nil, errors.Wrap(err, "service: copier.Copy(&userReply, userDO) failed")
+	reply = new(pb.GetUserReply)
+	if err = copier.Copy(&reply, userRes); err != nil {
+		return nil, errors.Wrap(err, "service: GetUser copier.Copy(&userReply, userDO) failed")
 	}
 
-	userReply.CreatedAt = timex.DateToString(userRes.CreatedAt)
-	userReply.UpdatedAt = timex.DateToString(userRes.UpdatedAt)
-	return &userReply, nil
+	reply.CreatedAt = timex.DateToString(userRes.CreatedAt)
+	reply.UpdatedAt = timex.DateToString(userRes.UpdatedAt)
+	return
 }
-func (us *UserService) ListUser(ctx context.Context, req *pb.ListUserReq) (*pb.ListUserReply, error) {
-	userDOList, err := us.userBiz.List(ctx, req.GetPageNum(), req.GetPageSize())
-
-	if err != nil {
+func (us *UserService) ListUser(ctx context.Context, req *pb.ListUserReq) (reply *pb.ListUserReply, err error) {
+	var (
+		userDOList []*biz.UserDO
+		resList    []*pb.ListUserReply_User
+	)
+	if userDOList, err = us.userBiz.List(ctx, req.GetPageNum(), req.GetPageSize()); err != nil {
 		return nil, err
 	}
 
-	var resList []*pb.ListUserReply_User
 	if err = copier.Copy(&resList, userDOList); err != nil {
-
-		return nil, err
+		return nil, errors.Wrap(err, "service: ListUser copier.Copy(&resList, userDOList) failed")
 	}
-	return &pb.ListUserReply{
-		Users: resList,
-	}, nil
+
+	reply = new(pb.ListUserReply)
+	reply.Users = resList
+	return
 }

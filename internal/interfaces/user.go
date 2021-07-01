@@ -42,6 +42,23 @@ func (u *UserUseCase) Signup(c *gin.Context) {
 	ginx.RespSuccess(c, res)
 }
 
+func (u *UserUseCase) Update(c *gin.Context) {
+	var (
+		req pb.UpdateUserReq
+	)
+	if err := c.BindJSON(&req); err != nil {
+		ginx.RespError(c, e.CodeInvalidParams)
+		return
+	}
+	res, err := u.userService.UpdateUser(context.Background(), &req)
+
+	if err != nil {
+		ginx.RespError(c, e.CodeInternalError)
+		return
+	}
+	ginx.RespSuccess(c, res)
+}
+
 func (u *UserUseCase) Get(c *gin.Context) {
 	var (
 		req pb.GetUserReq
@@ -70,16 +87,24 @@ func (u *UserUseCase) List(c *gin.Context) {
 		ginx.RespError(c, e.CodeInvalidParams)
 		return
 	}
-	res, err := u.userService.ListUser(context.Background(), &req)
 
-	if err != nil {
-		ginx.RespError(c, e.CodeInternalError)
+	if req.PageNum == 0 && req.PageSize == 0 {
+		ginx.RespError(c, e.CodeInvalidParams)
 		return
 	}
-	ginx.RespSuccess(c, res)
+	res, err := u.userService.ListUser(context.Background(), &req)
+
+	switch err {
+	case nil:
+		ginx.RespSuccess(c, res)
+	case e.ErrNotFound:
+		ginx.RespError(c, e.CodeNotFound)
+	default:
+		ginx.RespError(c, e.CodeInternalError)
+	}
 }
 
-func (u *UserUseCase) Delte(c *gin.Context) {
+func (u *UserUseCase) Delete(c *gin.Context) {
 	var (
 		req pb.DeleteUserReq
 	)
