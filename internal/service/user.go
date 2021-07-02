@@ -32,7 +32,7 @@ func NewUserService(uc *biz.UserBiz, logger log.Logger) *UserService {
 func (us *UserService) CreateUser(ctx context.Context, req *pb.CreateUserReq) (reply *pb.CreateUserReply, err error) {
 	var (
 		userDO biz.UserDO
-		userId string
+		userId uint32
 	)
 
 	if err = copier.Copy(&userDO, req); err != nil {

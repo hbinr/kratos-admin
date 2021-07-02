@@ -18,7 +18,7 @@ import (
 // UserPO UserPO 持久化对象，与数据库结构一一映射，它是数据持久化过程中的数据载体。
 type UserPO struct {
 	gorm.Model
-	UserId   string `gorm:"not null;size:64;index:idx_user_id;"`
+	UserId   uint32 `gorm:"not null;index:idx_user_id;"`
 	UserName string `gorm:"not null;size:32;;index:idx_user_name;"`
 	Password string `gorm:"not null;size:64;"`
 	Email    string `gorm:"not null;size:128;unique;"`
@@ -45,21 +45,22 @@ func (u *UserPO) TableName() string {
 	return "user"
 }
 
-func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userId string, err error) {
-	var po = UserPO{}
+func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (uint32, error) {
+	var (
+		err error
+		po  = UserPO{}
+	)
 	if err = copier.Copy(&po, do); err != nil {
-		return
+		return 0, err
 	}
 
 	po.Password, err = hashx.HashPassword(do.Password)
 	po.UserId = uuidx.GenID()
-
-	if err = u.data.db.WithContext(ctx).Create(&po).Error; err != nil {
-		err = errors.Wrap(err, "data: Create user failed")
-		return
+	result := u.data.db.WithContext(ctx).Create(&po)
+	if result.Error != nil {
+		return 0, errors.Wrap(err, "data: Create user failed")
 	}
-	userId = po.UserId
-	return
+	return po.UserId, nil
 }
 
 func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (*biz.UserDO, error) {
@@ -78,7 +79,7 @@ func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (*biz.UserDO,
 	}, err
 }
 
-func (u *userRepo) DeleteUser(ctx context.Context, userId string) error {
+func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
 	result := u.data.db.WithContext(ctx).Where("user_id = ?", userId).Delete(&UserPO{})
 	if result.Error != nil {
 		return errors.Wrapf(result.Error, "data: deleted user failed, userID[%s]", userId)
@@ -90,7 +91,7 @@ func (u *userRepo) DeleteUser(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (u *userRepo) GetUser(ctx context.Context, userId string) (*biz.UserDO, error) {
+func (u *userRepo) GetUser(ctx context.Context, userId uint32) (*biz.UserDO, error) {
 	var (
 		userPO UserPO
 		do     biz.UserDO

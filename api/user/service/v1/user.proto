@@ -27,12 +27,12 @@ message CreateUserReq {
 }
 
 message CreateUserReply {
-    string user_id = 1;
+    uint32 user_id = 1;
 }
 
 message UpdateUserReq {
     int64 id = 1;
-    string user_id = 2;
+    uint32 user_id = 2;
     uint32 age = 3;
     string user_name = 4;
     string password = 5;
@@ -43,7 +43,7 @@ message UpdateUserReq {
 
 message UpdateUserReply {
     int64 id = 1;
-    string user_id = 2;
+    uint32 user_id = 2;
     uint32 age = 3;
     string user_name = 4;
     string password = 5;
@@ -56,7 +56,7 @@ message UpdateUserReply {
 
 
 message DeleteUserReq {
-    string user_id = 1;
+    uint32 user_id = 1;
 }
 
 message DeleteUserReply {
@@ -64,14 +64,14 @@ message DeleteUserReply {
 }
 
 message GetUserReq {
-    string user_id = 1;
+    uint32 user_id = 1;
 
 
 }
 
 message GetUserReply {
     int64 id = 1;
-    string user_id = 2;
+    uint32 user_id = 2;
     uint32 age = 3;
     string user_name = 4;
     string password = 5;
@@ -92,7 +92,7 @@ message ListUserReq {
 message ListUserReply {
     message User {
         int64 id = 1;
-        string user_id = 2;
+        uint32 user_id = 2;
         uint32 age = 3;
         string user_name = 4;
         string password = 5;
