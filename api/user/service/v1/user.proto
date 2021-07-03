@@ -81,11 +81,11 @@ message GetUserReply {
     string created_at = 9;
     string updated_at = 10;
 }
-
 message ListUserReq {
-    int64 page_num = 2;
-    int64 page_size = 3;
+    uint32 page_num = 1;
+    uint32 page_size = 2;
 }
+
 
 
 

@@ -75,7 +75,7 @@ func (u *UserUseCase) Get(c *gin.Context) {
 	case e.ErrNotFound:
 		ginx.RespError(c, e.CodeNotFound)
 	default:
-		ginx.RespError(c, e.CodeInternalError)
+		ginx.RespErrorWithMsg(c, e.CodeInternalError, err.Error())
 	}
 }
 

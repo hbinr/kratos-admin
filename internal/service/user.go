@@ -94,6 +94,7 @@ func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (reply *
 	reply.UpdatedAt = timex.DateToString(userRes.UpdatedAt)
 	return
 }
+
 func (us *UserService) ListUser(ctx context.Context, req *pb.ListUserReq) (reply *pb.ListUserReply, err error) {
 	var (
 		userDOList []*biz.UserDO

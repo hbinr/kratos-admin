@@ -13,8 +13,9 @@ func RegisterHTTPServer(
 		userGrp := rootGrp.Group("/user")
 		userGrp.GET("/hi", us.SayHi)
 		userGrp.POST("/signup", us.Signup)
-		userGrp.GET("/list", us.List)
+		userGrp.PUT("/", us.Update)
 		userGrp.GET("/", us.Get)
+		userGrp.GET("/list", us.List)
 		userGrp.DELETE("/", us.Delete)
 	}
 

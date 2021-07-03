@@ -45,44 +45,52 @@ func (u *UserPO) TableName() string {
 	return "user"
 }
 
-func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (uint32, error) {
+func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID uint32, err error) {
 	var (
-		err error
-		po  = UserPO{}
+		po = UserPO{}
 	)
 	if err = copier.Copy(&po, do); err != nil {
-		return 0, err
+		return
 	}
 
-	po.Password, err = hashx.HashPassword(do.Password)
-	po.UserId = uuidx.GenID()
-	result := u.data.db.WithContext(ctx).Create(&po)
-	if result.Error != nil {
-		return 0, errors.Wrap(err, "data: Create user failed")
+	if po.Password, err = hashx.HashPassword(do.Password); err != nil {
+		return
 	}
-	return po.UserId, nil
+
+	po.UserId = uuidx.GenID()
+
+	if err = u.data.db.WithContext(ctx).Create(&po).Error; err != nil {
+		err = errors.Wrap(err, "data: Create user failed")
+		return
+	}
+
+	userID = po.UserId
+	return
 }
 
-func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (*biz.UserDO, error) {
+func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (res *biz.UserDO, err error) {
 	var po = UserPO{}
-	if err := copier.Copy(&po, do); err != nil {
-		return nil, err
+
+	if err = copier.Copy(&po, do); err != nil {
+		return
 	}
-	err := u.data.db.WithContext(ctx).
+
+	err = u.data.db.WithContext(ctx).
 		Where("user_id = ? ", po.UserId).
 		Updates(&po).Error
 
-	return &biz.UserDO{
-		Id:       po.ID,
-		UserId:   po.UserId,
-		UserName: po.UserName,
-	}, err
+	res = new(biz.UserDO)
+	if err = copier.Copy(&res, po); err != nil {
+		return
+	}
+
+	return
 }
 
 func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
 	result := u.data.db.WithContext(ctx).Where("user_id = ?", userId).Delete(&UserPO{})
 	if result.Error != nil {
-		return errors.Wrapf(result.Error, "data: deleted user failed, userID[%s]", userId)
+		return errors.Wrapf(result.Error, "data: deleted user failed, userID[%d]", userId)
 	}
 
 	if result.RowsAffected <= 0 {
@@ -91,35 +99,30 @@ func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
 	return nil
 }
 
-func (u *userRepo) GetUser(ctx context.Context, userId uint32) (*biz.UserDO, error) {
+func (u *userRepo) GetUser(ctx context.Context, userId uint32) (res *biz.UserDO, err error) {
 	var (
 		userPO UserPO
-		do     biz.UserDO
 	)
-	result := u.data.db.WithContext(ctx).
+	err = u.data.db.WithContext(ctx).
 		Where("user_id = ?", userId).
-		Find(&userPO)
-
-	if result.RowsAffected == 0 {
-		return nil, e.ErrNotFound
-	}
-
-	switch result.Error {
+		Find(&userPO).Error
+	res = new(biz.UserDO)
+	switch err {
 	case nil:
-
-		if err := copier.Copy(&do, userPO); err != nil {
-			return nil, err
+		if err = copier.Copy(&res, userPO); err != nil {
+			return
 		}
 
-		return &do, nil
+		return
 	case gorm.ErrRecordNotFound:
-		return nil, e.ErrNotFound
+		err = e.ErrNotFound
+		return
 	default:
-		return nil, result.Error
+		return
 	}
 }
 
-func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize int64) (doList []*biz.UserDO, err error) {
+func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doList []*biz.UserDO, err error) {
 	var poList []UserPO
 	result := u.data.db.WithContext(ctx).
 		Limit(int(pageSize)).
@@ -152,13 +155,21 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize int64) (doLis
 	return
 }
 
-func (u *userRepo) VerifyPassword(ctx context.Context, do *biz.UserDO) (bool, error) {
+func (u *userRepo) VerifyPassword(ctx context.Context, do *biz.UserDO) (isCorrect bool, err error) {
 	var po UserPO
-	res := u.data.db.WithContext(ctx).Where("user_name = ?", do.UserName).Find(&po)
-	if res.Error != nil {
-		return false, res.Error
+	err = u.data.db.WithContext(ctx).Where("user_name = ?", do.UserName).Find(&po).Error
+
+	switch err {
+	case nil:
+		isCorrect = hashx.CheckPasswordHash(do.Password, po.Password)
+		return
+	case gorm.ErrRecordNotFound:
+		isCorrect = false
+		err = e.ErrNotFound
+	default:
+		isCorrect = false
 	}
 
-	return hashx.CheckPasswordHash(do.Password, po.Password), nil
+	return
 
 }

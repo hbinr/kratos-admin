@@ -33,7 +33,7 @@ type UserRepo interface {
 	UpdateUser(context.Context, *UserDO) (*UserDO, error)
 	DeleteUser(context.Context, uint32) error
 	GetUser(ctx context.Context, userId uint32) (*UserDO, error)
-	ListUser(ctx context.Context, pageNum, pageSize int64) ([]*UserDO, error)
+	ListUser(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error)
 	VerifyPassword(context.Context, *UserDO) (bool, error)
 }
 
@@ -57,6 +57,6 @@ func (uc *UserBiz) Get(ctx context.Context, userId uint32) (*UserDO, error) {
 	return uc.repo.GetUser(ctx, userId)
 }
 
-func (uc *UserBiz) List(ctx context.Context, pageNum, pageSize int64) ([]*UserDO, error) {
+func (uc *UserBiz) List(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error) {
 	return uc.repo.ListUser(ctx, pageNum, pageSize)
 }
