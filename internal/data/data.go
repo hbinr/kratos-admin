@@ -15,6 +15,7 @@ import (
 // ProviderSet is data providers.
 var (
 	ProviderSet = wire.NewSet(NewData, NewUserRepo)
+	entities    = []interface{}{&UserPO{}}
 )
 
 // Data .
@@ -24,8 +25,15 @@ type Data struct {
 }
 
 func NewData(conf *conf.Data) *Data {
-	return &Data{
-		db:  database.Init(conf),
-		rdb: cache.Init(conf),
+	data := new(Data)
+	data.db = database.Init(conf)
+	data.rdb = cache.Init(conf)
+	if err := data.AutoMigrate(); err != nil {
+		panic(err)
 	}
+	return data
+}
+
+func (d *Data) AutoMigrate() error {
+	return d.db.AutoMigrate(entities...)
 }

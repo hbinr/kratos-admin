@@ -19,6 +19,7 @@ import (
 type UserPO struct {
 	gorm.Model
 	UserId   uint32 `gorm:"not null;index:idx_user_id;"`
+	age      uint32 `gorm:"not null;"`
 	UserName string `gorm:"not null;size:32;;index:idx_user_name;"`
 	Password string `gorm:"not null;size:64;"`
 	Email    string `gorm:"not null;size:128;unique;"`
