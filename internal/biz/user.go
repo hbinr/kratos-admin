@@ -2,7 +2,6 @@ package biz
 
 import (
 	"context"
-	"time"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -17,8 +16,8 @@ type UserDO struct {
 	Email     string
 	Phone     string
 	RoleName  string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt string
+	UpdatedAt string
 }
 
 // UserBiz

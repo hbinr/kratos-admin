@@ -83,9 +83,9 @@ message UpdateUserReq {
     int64 id = 1;
     uint32 user_id = 2;
     uint32 age = 3;
-    string user_name = 4 [(validate.rules).string = {min_len: 6, max_len: 18}];
-    string password = 5 [(validate.rules).string = {min_len: 6, max_len: 18}];
-    string email = 6 [(validate.rules).string.email = true];
+    string user_name = 4 [(validate.rules).string = {min_len: 6, max_len: 18}, (validate.rules).message.required = false];
+    string password = 5 [(validate.rules).string = {min_len: 6, max_len: 18}, (validate.rules).message.required = false];
+    string email = 6 [(validate.rules).string.email = true, (validate.rules).message.required = false];
     string role_name = 7;
     string phone = 8;
 }

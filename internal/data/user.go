@@ -2,11 +2,14 @@ package data
 
 import (
 	"context"
+	v1 "kratos-admin/api/user/service/v1"
 	"kratos-admin/internal/biz"
 	"kratos-admin/internal/pkg/constant/e"
 	"kratos-admin/pkg/util/hashx"
 	"kratos-admin/pkg/util/pagination"
+	"kratos-admin/pkg/util/timex"
 	"kratos-admin/pkg/util/uuidx"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -19,7 +22,7 @@ import (
 type UserPO struct {
 	gorm.Model
 	UserId   uint32 `gorm:"not null;index:idx_user_id;"`
-	age      uint32 `gorm:"not null;"`
+	Age      uint32 `gorm:"not null;"`
 	UserName string `gorm:"not null;size:32;;index:idx_user_name;"`
 	Password string `gorm:"not null;size:64;"`
 	Email    string `gorm:"not null;size:128;unique;"`
@@ -54,12 +57,12 @@ func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID uint3
 		return
 	}
 
+	// TODO 加密耗时较长，待优化 目前请求有 2.8s
 	if po.Password, err = hashx.HashPassword(do.Password); err != nil {
 		return
 	}
 
 	po.UserId = uuidx.GenID()
-
 	if err = u.data.db.WithContext(ctx).Create(&po).Error; err != nil {
 		err = errors.Wrap(err, "data: Create user failed")
 		return
@@ -76,14 +79,19 @@ func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (res *biz.Use
 		return
 	}
 
+	po.UpdatedAt = time.Now()
 	err = u.data.db.WithContext(ctx).
 		Where("user_id = ? ", po.UserId).
 		Updates(&po).Error
 
 	res = new(biz.UserDO)
+
 	if err = copier.Copy(&res, po); err != nil {
 		return
 	}
+
+	res.CreatedAt = timex.DateToString(po.CreatedAt)
+	res.UpdatedAt = timex.DateToString(po.UpdatedAt)
 
 	return
 }
@@ -100,23 +108,30 @@ func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
 	return nil
 }
 
-func (u *userRepo) GetUser(ctx context.Context, userId uint32) (res *biz.UserDO, err error) {
+func (u *userRepo) GetUser(ctx context.Context, userId uint32) (do *biz.UserDO, err error) {
 	var (
 		userPO UserPO
 	)
-	err = u.data.db.WithContext(ctx).
+	result := u.data.db.WithContext(ctx).
 		Where("user_id = ?", userId).
-		Find(&userPO).Error
-	res = new(biz.UserDO)
+		Find(&userPO)
+	do = new(biz.UserDO)
+
+	if result.RowsAffected == 0 {
+		err = v1.ErrorUserNotFound("data: userId = %d", userId)
+		return
+	}
+
 	switch err {
 	case nil:
-		if err = copier.Copy(&res, userPO); err != nil {
+		if err = copier.Copy(&do, userPO); err != nil {
 			return
 		}
-
+		do.CreatedAt = timex.DateToString(userPO.CreatedAt)
+		do.UpdatedAt = timex.DateToString(userPO.UpdatedAt)
 		return
 	case gorm.ErrRecordNotFound:
-		err = e.ErrNotFound
+		err = v1.ErrorUserNotFound("data: userId = %d", userId)
 		return
 	default:
 		return
@@ -148,11 +163,10 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doLi
 			Email:     po.Email,
 			Phone:     po.Phone,
 			RoleName:  po.RoleName,
-			CreatedAt: po.CreatedAt,
-			UpdatedAt: po.UpdatedAt,
+			CreatedAt: timex.DateToString(po.CreatedAt),
+			UpdatedAt: timex.DateToString(po.CreatedAt),
 		})
 	}
-
 	return
 }
 
