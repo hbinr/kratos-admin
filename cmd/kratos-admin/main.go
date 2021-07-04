@@ -77,7 +77,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("URL :  http://%s/api/user/hi\n", bc.Server.Http.Addr)
+	fmt.Printf("URL :  http://%s/v1/user/\n", bc.Server.Http.Addr)
 
 	// start and wait for stop signal
 	if err := app.Run(); err != nil {

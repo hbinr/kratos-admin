@@ -6,15 +6,13 @@
 package main
 
 import (
+	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v2/log"
 	"kratos-admin/internal/biz"
 	"kratos-admin/internal/conf"
 	"kratos-admin/internal/data"
-	"kratos-admin/internal/interfaces"
 	"kratos-admin/internal/server"
 	"kratos-admin/internal/service"
-
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
 )
 
 // Injectors from wire.go:
@@ -25,8 +23,7 @@ func initApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	userRepo := data.NewUserRepo(dataData, logger)
 	userBiz := biz.NewUserBiz(userRepo, logger)
 	userService := service.NewUserService(userBiz, logger)
-	userUseCase := interfaces.NewUserUseCase(userService, logger)
-	httpServer := server.NewHTTPServer(confServer, userUseCase, logger)
+	httpServer := server.NewHTTPServer(confServer, logger, userService)
 	grpcServer := server.NewGRPCServer(confServer, userService, logger)
 	app := newApp(logger, httpServer, grpcServer)
 	return app, nil

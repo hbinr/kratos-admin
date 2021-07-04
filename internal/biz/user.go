@@ -10,7 +10,7 @@ import (
 // UserDO  领域对象（ Domain Object， DO），微服务运行时核心业务对象的载体， DO 一般包括实体或值对象。
 type UserDO struct {
 	Id        uint
-	Age       uint8
+	Age       uint32
 	UserId    uint32
 	UserName  string
 	Password  string

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"kratos-admin/internal/biz"
 	"kratos-admin/pkg/util/timex"
 
@@ -29,7 +30,7 @@ func NewUserService(uc *biz.UserBiz, logger log.Logger) *UserService {
 	return &UserService{userBiz: uc, log: log.NewHelper(logger)}
 }
 
-func (us *UserService) CreateUser(ctx context.Context, req *pb.CreateUserReq) (reply *pb.CreateUserReply, err error) {
+func (us *UserService) Register(ctx context.Context, req *pb.RegisterReq) (reply *pb.RegisterReply, err error) {
 	var (
 		userDO biz.UserDO
 		userId uint32
@@ -42,8 +43,12 @@ func (us *UserService) CreateUser(ctx context.Context, req *pb.CreateUserReq) (r
 	if userId, err = us.userBiz.Create(ctx, &userDO); err != nil {
 		return nil, errors.WithMessagef(err, "service: Create User failed, userName: [%s]", req.UserName)
 	}
-	reply = new(pb.CreateUserReply)
+	reply = new(pb.RegisterReply)
 	reply.UserId = userId
+	return
+}
+
+func (us *UserService) Login(ctx context.Context, req *pb.LoginReq) (reply *pb.LoginReply, err error) {
 	return
 }
 
@@ -67,6 +72,7 @@ func (us *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserReq) (r
 
 	return
 }
+
 func (us *UserService) DeleteUser(ctx context.Context, req *pb.DeleteUserReq) (reply *pb.DeleteUserReply, err error) {
 	reply = &pb.DeleteUserReply{Ok: true}
 	if err = us.userBiz.Delete(ctx, req.UserId); err != nil {
@@ -100,6 +106,8 @@ func (us *UserService) ListUser(ctx context.Context, req *pb.ListUserReq) (reply
 		userDOList []*biz.UserDO
 		resList    []*pb.ListUserReply_User
 	)
+	fmt.Println("------")
+
 	if userDOList, err = us.userBiz.List(ctx, req.GetPageNum(), req.GetPageSize()); err != nil {
 		return nil, err
 	}

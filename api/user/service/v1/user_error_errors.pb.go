@@ -4,11 +4,10 @@ package v1
 
 import (
 	fmt "fmt"
-
 	errors "github.com/go-kratos/kratos/v2/errors"
 )
 
-// This is a compile-timex assertion to ensure that this generated file
+// This is a compile-time assertion to ensure that this generated file
 // is compatible with the kratos package it is being compiled against.
 const _ = errors.SupportPackageIsVersion1
 
@@ -21,15 +20,6 @@ func ErrorUnknownError(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_UNKNOWN_ERROR.String(), fmt.Sprintf(format, args...))
 }
 
-func IsUserHasExist(err error) bool {
-	e := errors.FromError(err)
-	return e.Reason == UserServiceErrorReason_USER_HAS_EXIST.String() && e.Code == 401
-}
-
-func ErrorUserHasExist(format string, args ...interface{}) *errors.Error {
-	return errors.New(401, UserServiceErrorReason_USER_HAS_EXIST.String(), fmt.Sprintf(format, args...))
-}
-
 func IsUserNotFound(err error) bool {
 	e := errors.FromError(err)
 	return e.Reason == UserServiceErrorReason_USER_NOT_FOUND.String() && e.Code == 404
@@ -37,6 +27,15 @@ func IsUserNotFound(err error) bool {
 
 func ErrorUserNotFound(format string, args ...interface{}) *errors.Error {
 	return errors.New(404, UserServiceErrorReason_USER_NOT_FOUND.String(), fmt.Sprintf(format, args...))
+}
+
+func IsUserHasExist(err error) bool {
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_USER_HAS_EXIST.String() && e.Code == 409
+}
+
+func ErrorUserHasExist(format string, args ...interface{}) *errors.Error {
+	return errors.New(409, UserServiceErrorReason_USER_HAS_EXIST.String(), fmt.Sprintf(format, args...))
 }
 
 func IsLoginFailed(err error) bool {

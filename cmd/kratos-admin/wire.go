@@ -8,7 +8,6 @@ import (
 	"kratos-admin/internal/biz"
 	"kratos-admin/internal/conf"
 	"kratos-admin/internal/data"
-	"kratos-admin/internal/interfaces"
 	"kratos-admin/internal/server"
 	"kratos-admin/internal/service"
 
@@ -24,6 +23,5 @@ func initApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, error) {
 		data.ProviderSet,
 		biz.ProviderSet,
 		service.ProviderSet,
-		interfaces.ProviderSet,
 		newApp))
 }
