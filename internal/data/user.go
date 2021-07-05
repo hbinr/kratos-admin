@@ -2,16 +2,18 @@ package data
 
 import (
 	"context"
+	v1 "kratos-admin/api/user/service/v1"
 	"kratos-admin/internal/biz"
 	"kratos-admin/internal/pkg/constant/e"
 	"kratos-admin/pkg/util/hashx"
 	"kratos-admin/pkg/util/pagination"
+	"kratos-admin/pkg/util/timex"
 	"kratos-admin/pkg/util/uuidx"
+	"time"
 
 	"github.com/pkg/errors"
 
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/jinzhu/copier"
 	"gorm.io/gorm"
 )
 
@@ -19,6 +21,7 @@ import (
 type UserPO struct {
 	gorm.Model
 	UserId   uint32 `gorm:"not null;index:idx_user_id;"`
+	Age      uint32 `gorm:"not null;"`
 	UserName string `gorm:"not null;size:32;;index:idx_user_name;"`
 	Password string `gorm:"not null;size:64;"`
 	Email    string `gorm:"not null;size:128;unique;"`
@@ -41,25 +44,46 @@ func NewUserRepo(data *Data, logger log.Logger) biz.UserRepo {
 	}
 }
 
-func (u *UserPO) TableName() string {
+func (po *UserPO) DOFactory(do *biz.UserDO) {
+	do.ID = po.ID
+	do.UserId = po.UserId
+	do.Age = po.Age
+	do.UserName = po.UserName
+	do.Password = po.Password
+	do.Email = po.Email
+	do.Phone = po.Phone
+	do.RoleName = po.RoleName
+	do.CreatedAt = timex.DateToString(po.CreatedAt)
+	do.UpdatedAt = timex.DateToString(po.UpdatedAt)
+
+}
+
+func (po *UserPO) POFactory(do *biz.UserDO) {
+	po.ID = do.ID
+	po.UserId = do.UserId
+	po.Age = do.Age
+	po.UserName = do.UserName
+	po.Password = do.Password
+	po.Email = do.Email
+	po.Phone = do.Phone
+	po.RoleName = do.RoleName
+}
+
+func (po *UserPO) TableName() string {
 	return "user"
 }
 
 func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID uint32, err error) {
-	var (
-		po = UserPO{}
-	)
-	if err = copier.Copy(&po, do); err != nil {
-		return
-	}
+	po := new(UserPO)
+	po.POFactory(do)
 
+	// TODO 加密耗时较长，待优化 目前请求有 2.8s
 	if po.Password, err = hashx.HashPassword(do.Password); err != nil {
 		return
 	}
 
 	po.UserId = uuidx.GenID()
-
-	if err = u.data.db.WithContext(ctx).Create(&po).Error; err != nil {
+	if err = u.data.db.WithContext(ctx).Create(po).Error; err != nil {
 		err = errors.Wrap(err, "data: Create user failed")
 		return
 	}
@@ -69,20 +93,16 @@ func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID uint3
 }
 
 func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (res *biz.UserDO, err error) {
-	var po = UserPO{}
-
-	if err = copier.Copy(&po, do); err != nil {
-		return
-	}
+	po := new(UserPO)
+	po.POFactory(do)
+	po.UpdatedAt = time.Now()
 
 	err = u.data.db.WithContext(ctx).
 		Where("user_id = ? ", po.UserId).
-		Updates(&po).Error
+		Updates(po).Error
 
 	res = new(biz.UserDO)
-	if err = copier.Copy(&res, po); err != nil {
-		return
-	}
+	po.DOFactory(res)
 
 	return
 }
@@ -99,23 +119,27 @@ func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
 	return nil
 }
 
-func (u *userRepo) GetUser(ctx context.Context, userId uint32) (res *biz.UserDO, err error) {
+func (u *userRepo) GetUser(ctx context.Context, userId uint32) (do *biz.UserDO, err error) {
 	var (
 		userPO UserPO
 	)
-	err = u.data.db.WithContext(ctx).
+	result := u.data.db.WithContext(ctx).
 		Where("user_id = ?", userId).
-		Find(&userPO).Error
-	res = new(biz.UserDO)
+		Find(&userPO)
+
+	if result.RowsAffected == 0 {
+		err = v1.ErrorUserNotFound("data: userId = %d", userId)
+		return
+	}
+
 	switch err {
 	case nil:
-		if err = copier.Copy(&res, userPO); err != nil {
-			return
-		}
+		do = new(biz.UserDO)
+		userPO.DOFactory(do)
 
 		return
 	case gorm.ErrRecordNotFound:
-		err = e.ErrNotFound
+		err = v1.ErrorUserNotFound("data: userId = %d", userId)
 		return
 	default:
 		return
@@ -147,11 +171,10 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doLi
 			Email:     po.Email,
 			Phone:     po.Phone,
 			RoleName:  po.RoleName,
-			CreatedAt: po.CreatedAt,
-			UpdatedAt: po.UpdatedAt,
+			CreatedAt: timex.DateToString(po.CreatedAt),
+			UpdatedAt: timex.DateToString(po.CreatedAt),
 		})
 	}
-
 	return
 }
 

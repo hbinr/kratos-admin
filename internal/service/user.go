@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"kratos-admin/internal/biz"
-	"kratos-admin/pkg/util/timex"
 
 	"github.com/pkg/errors"
 
@@ -90,8 +89,6 @@ func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (reply *
 		return nil, errors.Wrap(err, "service: GetUser copier.Copy(&userReply, userDO) failed")
 	}
 
-	reply.CreatedAt = timex.DateToString(userRes.CreatedAt)
-	reply.UpdatedAt = timex.DateToString(userRes.UpdatedAt)
 	return
 }
 
