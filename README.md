@@ -1,8 +1,8 @@
 # Kratos Project Template
 
-Kratos + gorm 
+- kratos-http-template 分支，路由模块使用的是 Kratos 提供的 http 模块
+- kratos-gin-template  分支，路由模块使用的是 Kratos 提供的 http 模块
 
-路由模块使用的是 Kratos 提供的 http 模块
 
 ## Install Kratos
 ```
