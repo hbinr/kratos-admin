@@ -15,8 +15,8 @@ const (
 	CodeNeedLogin         ResCode = 10003
 	CodeInvalidID         ResCode = 10004
 
-	CodeUserHasExist            ResCode = 20002
-	CodeEmailExist              ResCode = 20003
-	CodeWrongPassword           ResCode = 20004
-	CodeWrongUserNameOrPassword ResCode = 20005
+	CodeUserHasExist   ResCode = 20002
+	CodeEmailExist     ResCode = 20003
+	CodeWrongPassword  ResCode = 20004
+	CodeUserHasDeleted ResCode = 20005
 )

@@ -11,7 +11,6 @@ import (
 	"kratos-admin/internal/biz"
 	"kratos-admin/internal/conf"
 	"kratos-admin/internal/data"
-	"kratos-admin/internal/interfaces"
 	"kratos-admin/internal/server"
 	"kratos-admin/internal/service"
 )
@@ -19,19 +18,13 @@ import (
 // Injectors from wire.go:
 
 // initApp init kratos application.
-func initApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	dataData, cleanup, err := data.NewData(confData, logger)
-	if err != nil {
-		return nil, nil, err
-	}
+func initApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, error) {
+	dataData := data.NewData(confData)
 	userRepo := data.NewUserRepo(dataData, logger)
 	userBiz := biz.NewUserBiz(userRepo, logger)
 	userService := service.NewUserService(userBiz, logger)
-	userUseCase := interfaces.NewUserUseCase(userService, logger)
-	httpServer := server.NewHTTPServer(confServer, userUseCase, logger)
+	httpServer := server.NewHTTPServer(confServer, logger, userService)
 	grpcServer := server.NewGRPCServer(confServer, userService, logger)
 	app := newApp(logger, httpServer, grpcServer)
-	return app, func() {
-		cleanup()
-	}, nil
+	return app, nil
 }

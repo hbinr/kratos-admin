@@ -1,18 +1,22 @@
 server:
   http:
     addr: 127.0.0.1:8000
-    timeout: 1s
+    timeout: 5s
   grpc:
     addr: 127.0.0.1:9000
-    timeout: 1s
+    timeout: 5s
 data:
   database:
     driver: mysql
     source: root:123456@tcp(127.0.0.1:3306)/study?charset=utf8mb4&parseTime=true&loc=Local
-    log_mode: true
+    log_mode: false
     max_open_conns: 10
     max_idle_conns: 10
   redis:
     addr: 127.0.0.1:6379
+    password: ""
+    db: 0
+    pool_size: 100
+    min_idle_conns: 5
     read_timeout: 0.2s
     write_timeout: 0.2s

@@ -72,13 +72,12 @@ func main() {
 		panic(err)
 	}
 
-	app, cleanup, err := initApp(bc.Server, bc.Data, logger)
+	app, err := initApp(bc.Server, bc.Data, logger)
 	if err != nil {
 		panic(err)
 	}
-	defer cleanup()
 
-	fmt.Printf("URL :  http://%s/api/user\n", bc.Server.Http.Addr)
+	fmt.Printf("URL :  http://%s/v1/users\n", bc.Server.Http.Addr)
 
 	// start and wait for stop signal
 	if err := app.Run(); err != nil {

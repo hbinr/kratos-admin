@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"kratos-admin/internal/biz"
-	"kratos-admin/pkg/util/timex"
 
 	"github.com/pkg/errors"
 
@@ -29,44 +29,54 @@ func NewUserService(uc *biz.UserBiz, logger log.Logger) *UserService {
 	return &UserService{userBiz: uc, log: log.NewHelper(logger)}
 }
 
-func (us *UserService) CreateUser(ctx context.Context, req *pb.CreateUserReq) (reply *pb.CreateUserReply, err error) {
+func (us *UserService) Register(ctx context.Context, req *pb.RegisterReq) (reply *pb.RegisterReply, err error) {
 	var (
 		userDO biz.UserDO
-		userId string
+		userId uint32
 	)
 
 	if err = copier.Copy(&userDO, req); err != nil {
-		return nil, errors.Wrap(err, "service: copier.Copy(&userDO, req) failed")
+		err = errors.Wrap(err, "service: copier.Copy(&userDO, req) failed")
+		return
 	}
 
 	if userId, err = us.userBiz.Create(ctx, &userDO); err != nil {
-		return nil, errors.WithMessagef(err, "service: Create User failed, userName: [%s]", req.UserName)
+		err = errors.WithMessagef(err, "service: Create User failed, userName: [%s]", req.UserName)
+		return
+
 	}
-	reply = new(pb.CreateUserReply)
+
+	reply = new(pb.RegisterReply)
 	reply.UserId = userId
 	return
 }
 
+func (us *UserService) Login(ctx context.Context, req *pb.LoginReq) (reply *pb.LoginReply, err error) {
+	return
+}
+
 func (us *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserReq) (reply *pb.UpdateUserReply, err error) {
-	var userDO biz.UserDO
+	var (
+		userDO biz.UserDO
+	)
 
 	if err = copier.Copy(&userDO, req); err != nil {
 		return
 	}
 
-	result, err := us.userBiz.Update(ctx, &userDO)
+	userRes, err := us.userBiz.Update(ctx, &userDO)
 
 	if err != nil {
 		return
 	}
 
 	reply = new(pb.UpdateUserReply)
-	if err = copier.Copy(&reply, result); err != nil {
+	if err = copier.Copy(&reply, userRes); err != nil {
 		return
 	}
-
 	return
 }
+
 func (us *UserService) DeleteUser(ctx context.Context, req *pb.DeleteUserReq) (reply *pb.DeleteUserReply, err error) {
 	reply = &pb.DeleteUserReply{Ok: true}
 	if err = us.userBiz.Delete(ctx, req.UserId); err != nil {
@@ -90,15 +100,16 @@ func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (reply *
 		return nil, errors.Wrap(err, "service: GetUser copier.Copy(&userReply, userDO) failed")
 	}
 
-	reply.CreatedAt = timex.DateToString(userRes.CreatedAt)
-	reply.UpdatedAt = timex.DateToString(userRes.UpdatedAt)
 	return
 }
+
 func (us *UserService) ListUser(ctx context.Context, req *pb.ListUserReq) (reply *pb.ListUserReply, err error) {
 	var (
 		userDOList []*biz.UserDO
 		resList    []*pb.ListUserReply_User
 	)
+	fmt.Println("------")
+
 	if userDOList, err = us.userBiz.List(ctx, req.GetPageNum(), req.GetPageSize()); err != nil {
 		return nil, err
 	}

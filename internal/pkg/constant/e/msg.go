@@ -12,10 +12,10 @@ var codeMsgMap = map[ResCode]string{
 	CodeNeedLogin:         "请先登陆",     // 10003
 	CodeInvalidID:         "无效的ID",    // 10004
 
-	CodeUserHasExist:            "该用户已存在",   // 20002
-	CodeEmailExist:              "该邮箱已存在",   // 20003
-	CodeWrongPassword:           "密码错误",     // 20004
-	CodeWrongUserNameOrPassword: "用户名或密码错误", // 20005
+	CodeUserHasExist:   "该用户已存在",        // 20002
+	CodeEmailExist:     "该邮箱已存在",        // 20003
+	CodeWrongPassword:  "密码错误",          // 20004
+	CodeUserHasDeleted: "用户已经删除,请勿重复操作", // 20004
 }
 
 // Msg .
