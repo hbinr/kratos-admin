@@ -20,11 +20,11 @@ import (
 type UserService struct {
 	pb.UnimplementedUserServer
 
-	userBiz *biz.UserBiz
+	userBiz *biz.UserUsecase
 	log     *log.Helper
 }
 
-func NewUserService(uc *biz.UserBiz, logger log.Logger) *UserService {
+func NewUserService(uc *biz.UserUsecase, logger log.Logger) *UserService {
 
 	return &UserService{userBiz: uc, log: log.NewHelper(logger)}
 }

@@ -20,9 +20,8 @@ type UserDO struct {
 	UpdatedAt string
 }
 
-// UserBiz
-// 调 repo 接口
-type UserBiz struct {
+// UserUsecase 调 repo 接口
+type UserUsecase struct {
 	repo UserRepo
 	log  *log.Helper
 }
@@ -36,26 +35,26 @@ type UserRepo interface {
 	VerifyPassword(context.Context, *UserDO) (bool, error)
 }
 
-func NewUserBiz(repo UserRepo, logger log.Logger) *UserBiz {
-	return &UserBiz{repo: repo, log: log.NewHelper(logger)}
+func NewUserBiz(repo UserRepo, logger log.Logger) *UserUsecase {
+	return &UserUsecase{repo: repo, log: log.NewHelper(logger)}
 }
 
-func (uc *UserBiz) Create(ctx context.Context, user *UserDO) (uint32, error) {
+func (uc *UserUsecase) Create(ctx context.Context, user *UserDO) (uint32, error) {
 	return uc.repo.CreateUser(ctx, user)
 }
 
-func (uc *UserBiz) Update(ctx context.Context, user *UserDO) (*UserDO, error) {
+func (uc *UserUsecase) Update(ctx context.Context, user *UserDO) (*UserDO, error) {
 	return uc.repo.UpdateUser(ctx, user)
 }
 
-func (uc *UserBiz) Delete(ctx context.Context, userId uint32) error {
+func (uc *UserUsecase) Delete(ctx context.Context, userId uint32) error {
 	return uc.repo.DeleteUser(ctx, userId)
 }
 
-func (uc *UserBiz) Get(ctx context.Context, userId uint32) (*UserDO, error) {
+func (uc *UserUsecase) Get(ctx context.Context, userId uint32) (*UserDO, error) {
 	return uc.repo.GetUser(ctx, userId)
 }
 
-func (uc *UserBiz) List(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error) {
+func (uc *UserUsecase) List(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error) {
 	return uc.repo.ListUser(ctx, pageNum, pageSize)
 }
