@@ -4,7 +4,6 @@ import (
 	"context"
 	v1 "kratos-admin/api/user/service/v1"
 	"kratos-admin/internal/biz"
-	"kratos-admin/internal/pkg/constant/e"
 	"kratos-admin/pkg/util/hashx"
 	"kratos-admin/pkg/util/pagination"
 	"kratos-admin/pkg/util/timex"
@@ -17,16 +16,20 @@ import (
 	"gorm.io/gorm"
 )
 
-// UserPO UserPO 持久化对象，与数据库结构一一映射，它是数据持久化过程中的数据载体。
+var _ biz.UserRepo = (*userRepo)(nil)
+
+// UserPO  持久化对象，与数据库结构一一映射，它是数据持久化过程中的数据载体。
 type UserPO struct {
-	gorm.Model
-	UserId   uint32 `gorm:"not null;index:idx_user_id;"`
-	Age      uint32 `gorm:"not null;"`
-	UserName string `gorm:"not null;size:32;;index:idx_user_name;"`
-	Password string `gorm:"not null;size:64;"`
-	Email    string `gorm:"not null;size:128;unique;"`
-	Phone    string `gorm:"not null;size:11;"`
-	RoleName string `gorm:"not null;size:10;"`
+	Id        uint   `gorm:"primarykey"`
+	UserId    uint32 `gorm:"not null;index:idx_user_id;"`
+	Age       uint32 `gorm:"not null;"`
+	UserName  string `gorm:"not null;size:32;;index:idx_user_name;"`
+	Password  string `gorm:"not null;size:64;"`
+	Email     string `gorm:"not null;size:128;unique;"`
+	Phone     string `gorm:"not null;size:11;"`
+	RoleName  string `gorm:"not null;size:10;"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // 入参 do-> po
@@ -45,7 +48,7 @@ func NewUserRepo(data *Data, logger log.Logger) biz.UserRepo {
 }
 
 func (po *UserPO) DOFactory(do *biz.UserDO) {
-	do.ID = po.ID
+	do.Id = po.Id
 	do.UserId = po.UserId
 	do.Age = po.Age
 	do.UserName = po.UserName
@@ -59,7 +62,7 @@ func (po *UserPO) DOFactory(do *biz.UserDO) {
 }
 
 func (po *UserPO) POFactory(do *biz.UserDO) {
-	po.ID = do.ID
+	po.Id = do.Id
 	po.UserId = do.UserId
 	po.Age = do.Age
 	po.UserName = do.UserName
@@ -114,12 +117,12 @@ func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
 	}
 
 	if result.RowsAffected <= 0 {
-		return e.ErrUserHasDeleted
+		return v1.ErrorUserNotFound("data: user_id = %d", userId)
 	}
 	return nil
 }
 
-func (u *userRepo) GetUser(ctx context.Context, userId uint32) (do *biz.UserDO, err error) {
+func (u *userRepo) SelectUserByUid(ctx context.Context, userId uint32) (do *biz.UserDO, err error) {
 	var (
 		userPO UserPO
 	)
@@ -154,7 +157,7 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doLi
 		Find(&poList)
 
 	if result.RowsAffected == 0 {
-		return nil, e.ErrNotFound
+		return nil, v1.ErrorUserNotFound("data: no user")
 	}
 
 	if result.Error != nil {
@@ -165,11 +168,13 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doLi
 	doList = make([]*biz.UserDO, 0)
 	for _, po := range poList {
 		doList = append(doList, &biz.UserDO{
+			Id:        po.Id,
 			UserId:    po.UserId,
 			UserName:  po.UserName,
 			Password:  po.Password,
 			Email:     po.Email,
 			Phone:     po.Phone,
+			Age:       po.Age,
 			RoleName:  po.RoleName,
 			CreatedAt: timex.DateToString(po.CreatedAt),
 			UpdatedAt: timex.DateToString(po.CreatedAt),
@@ -188,11 +193,64 @@ func (u *userRepo) VerifyPassword(ctx context.Context, do *biz.UserDO) (isCorrec
 		return
 	case gorm.ErrRecordNotFound:
 		isCorrect = false
-		err = e.ErrNotFound
+		err = v1.ErrorUserNotFound("data: user_name = %s", do.UserName)
 	default:
 		isCorrect = false
 	}
 
 	return
+}
 
+func (u *userRepo) SelectUserByEmail(ctx context.Context, email string) (do *biz.UserDO, err error) {
+	var (
+		userPO UserPO
+	)
+	result := u.data.db.WithContext(ctx).
+		Where("email = ?", email).
+		Find(&userPO)
+
+	if result.RowsAffected == 0 {
+		err = v1.ErrorUserNotFound("data: email = %d", email)
+		return
+	}
+
+	switch err {
+	case nil:
+		do = new(biz.UserDO)
+		userPO.DOFactory(do)
+
+		return
+	case gorm.ErrRecordNotFound:
+		err = v1.ErrorUserNotFound("data: email = %d", email)
+		return
+	default:
+		return
+	}
+}
+
+func (u *userRepo) SelectUserByName(ctx context.Context, userName string) (do *biz.UserDO, err error) {
+	var (
+		userPO UserPO
+	)
+	result := u.data.db.WithContext(ctx).
+		Where("user_name = ?", userName).
+		Find(&userPO)
+
+	if result.RowsAffected == 0 {
+		err = v1.ErrorUserNotFound("data: userName = %d", userName)
+		return
+	}
+
+	switch err {
+	case nil:
+		do = new(biz.UserDO)
+		userPO.DOFactory(do)
+
+		return
+	case gorm.ErrRecordNotFound:
+		err = v1.ErrorUserNotFound("data: userName = %d", userName)
+		return
+	default:
+		return
+	}
 }

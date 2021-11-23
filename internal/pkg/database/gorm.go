@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"kratos-admin/internal/conf"
+	"log"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -22,7 +23,7 @@ func Init(conf *conf.Data) *gorm.DB {
 	}
 
 	if sqlDB, err = db.DB(); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	sqlDB.SetMaxIdleConns(int(conf.Database.MaxIdleConns))
 	sqlDB.SetMaxOpenConns(int(conf.Database.MaxOpenConns))

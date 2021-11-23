@@ -2,6 +2,7 @@ package cache
 
 import (
 	"kratos-admin/internal/conf"
+	"log"
 
 	"github.com/go-redis/redis"
 )
@@ -18,9 +19,9 @@ func Init(conf *conf.Data) *redis.Client {
 		MinIdleConns: int(conf.Redis.MinIdleConns),
 	})
 	if _, err := rdb.Ping().Result(); err != nil {
-		panic(err)
-		return nil
+		log.Fatal(err)
 	}
+
 	return rdb
 }
 

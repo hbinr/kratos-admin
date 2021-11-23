@@ -8,7 +8,7 @@ import (
 
 // UserDO  领域对象（ Domain Object， DO），微服务运行时核心业务对象的载体， DO 一般包括实体或值对象。
 type UserDO struct {
-	ID        uint
+	Id        uint
 	Age       uint32
 	UserId    uint32
 	UserName  string
@@ -30,9 +30,11 @@ type UserRepo interface {
 	CreateUser(context.Context, *UserDO) (uint32, error)
 	UpdateUser(context.Context, *UserDO) (*UserDO, error)
 	DeleteUser(context.Context, uint32) error
-	GetUser(ctx context.Context, userId uint32) (*UserDO, error)
+	SelectUserByUid(ctx context.Context, userId uint32) (*UserDO, error)
 	ListUser(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error)
 	VerifyPassword(context.Context, *UserDO) (bool, error)
+	SelectUserByEmail(context.Context, string) (*UserDO, error)
+	SelectUserByName(context.Context, string) (*UserDO, error)
 }
 
 func NewUserBiz(repo UserRepo, logger log.Logger) *UserUsecase {
@@ -52,9 +54,19 @@ func (uc *UserUsecase) Delete(ctx context.Context, userId uint32) error {
 }
 
 func (uc *UserUsecase) Get(ctx context.Context, userId uint32) (*UserDO, error) {
-	return uc.repo.GetUser(ctx, userId)
+	return uc.repo.SelectUserByUid(ctx, userId)
 }
 
 func (uc *UserUsecase) List(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error) {
 	return uc.repo.ListUser(ctx, pageNum, pageSize)
+}
+
+func (uc UserUsecase) Validate(ctx context.Context, user *UserDO) bool {
+	_, err := uc.repo.SelectUserByName(ctx, user.UserName)
+
+	if err != nil {
+		return true
+	}
+
+	return false
 }
