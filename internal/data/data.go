@@ -4,6 +4,7 @@ import (
 	"kratos-admin/internal/conf"
 	"kratos-admin/internal/pkg/cache"
 	"kratos-admin/internal/pkg/database"
+	"log"
 
 	"github.com/go-redis/redis"
 
@@ -29,7 +30,7 @@ func NewData(conf *conf.Data) *Data {
 	data.db = database.Init(conf)
 	data.rdb = cache.Init(conf)
 	if err := data.AutoMigrate(); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return data
 }
