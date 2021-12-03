@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"kratos-admin/internal/biz"
 
 	"github.com/pkg/errors"
@@ -32,7 +31,7 @@ func NewUserService(uc *biz.UserUsecase, logger log.Logger) *UserService {
 func (us *UserService) Register(ctx context.Context, req *pb.RegisterReq) (reply *pb.RegisterReply, err error) {
 	var (
 		userDO biz.UserDO
-		userId uint32
+		userID uint32
 	)
 
 	if err = copier.Copy(&userDO, req); err != nil {
@@ -40,14 +39,14 @@ func (us *UserService) Register(ctx context.Context, req *pb.RegisterReq) (reply
 		return
 	}
 
-	if userId, err = us.userBiz.Create(ctx, &userDO); err != nil {
+	if userID, err = us.userBiz.Create(ctx, &userDO); err != nil {
 		err = errors.WithMessagef(err, "service: Create User failed, userName: [%s]", req.UserName)
 		return
 
 	}
 
 	reply = new(pb.RegisterReply)
-	reply.UserId = userId
+	reply.UserId = userID
 	return
 }
 
@@ -64,8 +63,11 @@ func (us *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserReq) (r
 		return
 	}
 
-	userRes, err := us.userBiz.Update(ctx, &userDO)
+	if err = us.userBiz.Update(ctx, &userDO); err != nil {
+		return
+	}
 
+	userRes, err := us.userBiz.Get(ctx, uint(req.Id))
 	if err != nil {
 		return
 	}
@@ -91,7 +93,7 @@ func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (reply *
 	var (
 		userRes *biz.UserDO
 	)
-	if userRes, err = us.userBiz.Get(ctx, req.GetUserId()); err != nil {
+	if userRes, err = us.userBiz.GetByUID(ctx, req.GetUserId()); err != nil {
 		return nil, err
 	}
 
@@ -108,7 +110,6 @@ func (us *UserService) ListUser(ctx context.Context, req *pb.ListUserReq) (reply
 		userDOList []*biz.UserDO
 		resList    []*pb.ListUserReply_User
 	)
-	fmt.Println("------")
 
 	if userDOList, err = us.userBiz.List(ctx, req.GetPageNum(), req.GetPageSize()); err != nil {
 		return nil, err

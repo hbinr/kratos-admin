@@ -80,11 +80,7 @@ func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID uint3
 	po := new(UserPO)
 	po.POFactory(do)
 
-	// TODO 加密耗时较长，待优化 目前请求有 2.8s
-	if po.Password, err = hashx.HashPassword(do.Password); err != nil {
-		return
-	}
-
+	po.Password = hashx.MD5String(do.Password)
 	po.UserId = uuidx.GenID()
 	if err = u.data.db.WithContext(ctx).Create(po).Error; err != nil {
 		err = errors.Wrap(err, "data: Create user failed")
@@ -95,19 +91,12 @@ func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID uint3
 	return
 }
 
-func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) (res *biz.UserDO, err error) {
+func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) error {
 	po := new(UserPO)
 	po.POFactory(do)
 	po.UpdatedAt = time.Now()
 
-	err = u.data.db.WithContext(ctx).
-		Where("user_id = ? ", po.UserId).
-		Updates(po).Error
-
-	res = new(biz.UserDO)
-	po.DOFactory(res)
-
-	return
+	return u.data.db.WithContext(ctx).Where("id = ? ", po.Id).Updates(po).Error
 }
 
 func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
@@ -117,6 +106,7 @@ func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
 	}
 
 	if result.RowsAffected <= 0 {
+		// 响应结果中 message 字段值就是 format 参数
 		return v1.ErrorUserNotFound("data: user_id = %d", userId)
 	}
 	return nil
@@ -126,29 +116,33 @@ func (u *userRepo) SelectUserByUid(ctx context.Context, userId uint32) (do *biz.
 	var (
 		userPO UserPO
 	)
-	result := u.data.db.WithContext(ctx).
-		Where("user_id = ?", userId).
-		Find(&userPO)
-
-	if result.RowsAffected == 0 {
-		err = v1.ErrorUserNotFound("data: userId = %d", userId)
+	if err = u.data.db.WithContext(ctx).Where("user_id = ?", userId).Take(&userPO).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = v1.ErrorUserNotFound("data: userId = %d", userId)
+		}
 		return
 	}
 
-	switch err {
-	case nil:
-		do = new(biz.UserDO)
-		userPO.DOFactory(do)
-
-		return
-	case gorm.ErrRecordNotFound:
-		err = v1.ErrorUserNotFound("data: userId = %d", userId)
-		return
-	default:
-		return
-	}
+	do = new(biz.UserDO)
+	userPO.DOFactory(do)
+	return
 }
 
+func (u *userRepo) SelectUserByID(ctx context.Context, id uint) (do *biz.UserDO, err error) {
+	var (
+		userPO UserPO
+	)
+	if err = u.data.db.WithContext(ctx).First(&userPO).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = v1.ErrorUserNotFound("data: id = %d", id)
+		}
+		return
+	}
+
+	do = new(biz.UserDO)
+	userPO.DOFactory(do)
+	return
+}
 func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doList []*biz.UserDO, err error) {
 	var poList []UserPO
 	result := u.data.db.WithContext(ctx).
@@ -185,17 +179,16 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doLi
 
 func (u *userRepo) VerifyPassword(ctx context.Context, do *biz.UserDO) (isCorrect bool, err error) {
 	var po UserPO
-	err = u.data.db.WithContext(ctx).Where("user_name = ?", do.UserName).Find(&po).Error
-
-	switch err {
-	case nil:
-		isCorrect = hashx.CheckPasswordHash(do.Password, po.Password)
+	if err = u.data.db.WithContext(ctx).Where("user_name = ?", do.UserName).Take(&po).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = v1.ErrorUserNotFound("data: user_name = %s", do.UserName)
+		}
+		isCorrect = false
 		return
-	case gorm.ErrRecordNotFound:
-		isCorrect = false
-		err = v1.ErrorUserNotFound("data: user_name = %s", do.UserName)
-	default:
-		isCorrect = false
+	}
+
+	if po.Password == hashx.MD5String(do.Password) {
+		isCorrect = true
 	}
 
 	return
@@ -205,52 +198,30 @@ func (u *userRepo) SelectUserByEmail(ctx context.Context, email string) (do *biz
 	var (
 		userPO UserPO
 	)
-	result := u.data.db.WithContext(ctx).
-		Where("email = ?", email).
-		Find(&userPO)
-
-	if result.RowsAffected == 0 {
-		err = v1.ErrorUserNotFound("data: email = %d", email)
+	if err = u.data.db.WithContext(ctx).Where("email = ?", email).Take(&userPO).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = v1.ErrorUserNotFound("data: email = %s", email)
+		}
 		return
 	}
 
-	switch err {
-	case nil:
-		do = new(biz.UserDO)
-		userPO.DOFactory(do)
-
-		return
-	case gorm.ErrRecordNotFound:
-		err = v1.ErrorUserNotFound("data: email = %d", email)
-		return
-	default:
-		return
-	}
+	do = new(biz.UserDO)
+	userPO.DOFactory(do)
+	return
 }
 
 func (u *userRepo) SelectUserByName(ctx context.Context, userName string) (do *biz.UserDO, err error) {
 	var (
 		userPO UserPO
 	)
-	result := u.data.db.WithContext(ctx).
-		Where("user_name = ?", userName).
-		Find(&userPO)
-
-	if result.RowsAffected == 0 {
-		err = v1.ErrorUserNotFound("data: userName = %d", userName)
+	if err = u.data.db.WithContext(ctx).Where("user_name = ?", userName).Take(&userPO).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = v1.ErrorUserNotFound("data: user_name = %s", userName)
+		}
 		return
 	}
 
-	switch err {
-	case nil:
-		do = new(biz.UserDO)
-		userPO.DOFactory(do)
-
-		return
-	case gorm.ErrRecordNotFound:
-		err = v1.ErrorUserNotFound("data: userName = %d", userName)
-		return
-	default:
-		return
-	}
+	do = new(biz.UserDO)
+	userPO.DOFactory(do)
+	return
 }

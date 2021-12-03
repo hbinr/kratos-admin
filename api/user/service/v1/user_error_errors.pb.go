@@ -38,6 +38,15 @@ func ErrorUserHasExist(format string, args ...interface{}) *errors.Error {
 	return errors.New(409, UserServiceErrorReason_USER_HAS_EXIST.String(), fmt.Sprintf(format, args...))
 }
 
+func IsEmailHasExist(err error) bool {
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_EMAIL_HAS_EXIST.String() && e.Code == 409
+}
+
+func ErrorEmailHasExist(format string, args ...interface{}) *errors.Error {
+	return errors.New(409, UserServiceErrorReason_EMAIL_HAS_EXIST.String(), fmt.Sprintf(format, args...))
+}
+
 func IsLoginFailed(err error) bool {
 	e := errors.FromError(err)
 	return e.Reason == UserServiceErrorReason_LOGIN_FAILED.String() && e.Code == 500
