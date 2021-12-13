@@ -51,6 +51,11 @@ func (uc *UserUsecase) Create(ctx context.Context, user *UserDO) (uint32, error)
 }
 
 func (uc *UserUsecase) Update(ctx context.Context, user *UserDO) error {
+	_, err := uc.repo.SelectUserByID(ctx, user.Id)
+	if err != nil {
+		return err
+	}
+
 	return uc.repo.UpdateUser(ctx, user)
 }
 
@@ -76,6 +81,7 @@ func (uc UserUsecase) Validate(ctx context.Context, user *UserDO) (err error) {
 	if err != nil && !v1.IsUserNotFound(err) {
 		return err
 	}
+
 	if userDO != nil {
 		return v1.ErrorUserHasExist("%s has exist", user.UserName)
 	}

@@ -35,14 +35,12 @@ func (us *UserService) Register(ctx context.Context, req *pb.RegisterReq) (reply
 	)
 
 	if err = copier.Copy(&userDO, req); err != nil {
-		err = errors.Wrap(err, "service: copier.Copy(&userDO, req) failed")
+		err = errors.Wrap(err, "service: Register data copy failed")
 		return
 	}
 
 	if userID, err = us.userBiz.Create(ctx, &userDO); err != nil {
-		err = errors.WithMessagef(err, "service: Create User failed, userName: [%s]", req.UserName)
 		return
-
 	}
 
 	reply = new(pb.RegisterReply)
@@ -99,7 +97,7 @@ func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (reply *
 
 	reply = new(pb.GetUserReply)
 	if err = copier.Copy(&reply, userRes); err != nil {
-		return nil, errors.Wrap(err, "service: GetUser copier.Copy(&userReply, userDO) failed")
+		return nil, errors.Wrap(err, "service: GetUser data copy failed")
 	}
 
 	return
@@ -107,16 +105,22 @@ func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (reply *
 
 func (us *UserService) ListUser(ctx context.Context, req *pb.ListUserReq) (reply *pb.ListUserReply, err error) {
 	var (
-		userDOList []*biz.UserDO
-		resList    []*pb.ListUserReply_User
+		userDOList = make([]*biz.UserDO, 0, 10)
+		resList    = make([]*pb.ListUserReply_User, 0, 10)
 	)
+	if req.GetPageNum() == 0 {
+		req.PageNum = 1
+	}
+	if req.GetPageSize() == 0 {
+		req.PageSize = 10
+	}
 
-	if userDOList, err = us.userBiz.List(ctx, req.GetPageNum(), req.GetPageSize()); err != nil {
+	if userDOList, err = us.userBiz.List(ctx, req.PageNum, req.GetPageSize()); err != nil {
 		return nil, err
 	}
 
 	if err = copier.Copy(&resList, userDOList); err != nil {
-		return nil, errors.Wrap(err, "service: ListUser copier.Copy(&resList, userDOList) failed")
+		return nil, errors.Wrap(err, "service: ListUser data copy failed")
 	}
 
 	reply = new(pb.ListUserReply)

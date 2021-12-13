@@ -83,7 +83,6 @@ func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID uint3
 	po.Password = hashx.MD5String(do.Password)
 	po.UserId = uuidx.GenID()
 	if err = u.data.db.WithContext(ctx).Create(po).Error; err != nil {
-		err = errors.Wrap(err, "data: Create user failed")
 		return
 	}
 
@@ -96,7 +95,7 @@ func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) error {
 	po.POFactory(do)
 	po.UpdatedAt = time.Now()
 
-	return u.data.db.WithContext(ctx).Where("id = ? ", po.Id).Updates(po).Error
+	return u.data.db.WithContext(ctx).Updates(po).Error
 }
 
 func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
@@ -132,7 +131,7 @@ func (u *userRepo) SelectUserByID(ctx context.Context, id uint) (do *biz.UserDO,
 	var (
 		userPO UserPO
 	)
-	if err = u.data.db.WithContext(ctx).First(&userPO).Error; err != nil {
+	if err = u.data.db.WithContext(ctx).Where("id = ?", id).First(&userPO).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = v1.ErrorUserNotFound("data: id = %d", id)
 		}
@@ -150,16 +149,12 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doLi
 		Offset(int(pagination.GetPageOffset(pageNum, pageSize))).
 		Find(&poList)
 
-	if result.RowsAffected == 0 {
-		return nil, v1.ErrorUserNotFound("data: no user")
-	}
-
 	if result.Error != nil {
 		err = result.Error
 		return
 	}
 
-	doList = make([]*biz.UserDO, 0)
+	doList = make([]*biz.UserDO, 0, len(poList))
 	for _, po := range poList {
 		doList = append(doList, &biz.UserDO{
 			Id:        po.Id,
