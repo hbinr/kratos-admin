@@ -97,7 +97,7 @@ func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (reply *
 
 	reply = new(pb.GetUserReply)
 	if err = copier.Copy(&reply, userRes); err != nil {
-		return nil, errors.Wrap(err, "service: GetUser data copy failed")
+		return
 	}
 
 	return
@@ -116,11 +116,11 @@ func (us *UserService) ListUser(ctx context.Context, req *pb.ListUserReq) (reply
 	}
 
 	if userDOList, err = us.userBiz.List(ctx, req.PageNum, req.GetPageSize()); err != nil {
-		return nil, err
+		return
 	}
 
 	if err = copier.Copy(&resList, userDOList); err != nil {
-		return nil, errors.Wrap(err, "service: ListUser data copy failed")
+		return
 	}
 
 	reply = new(pb.ListUserReply)
