@@ -11,6 +11,7 @@ enum UserServiceErrorReason {
 
     UNKNOWN_ERROR = 0;
     USER_NOT_FOUND = 1 [(errors.code) = 404];
+    // 资源已存在。可以理解为资源冲突(409)，并且该冲突是在 预期用户可能能够解决冲突并重新提交请求的情况下才允许
     USER_HAS_EXIST = 2 [(errors.code) = 409];
     EMAIL_HAS_EXIST = 3 [(errors.code) = 409];
 

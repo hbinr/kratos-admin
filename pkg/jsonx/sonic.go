@@ -1,13 +1,13 @@
 package jsonx
 
 import (
-	"github.com/bytedance/sonic"
+	"encoding/json"
 )
 
 func Marshal(val interface{}) ([]byte, error) {
-	return sonic.Marshal(val)
+	return json.Marshal(val)
 }
 
 func Unmarshal(buf []byte, val interface{}) error {
-	return sonic.Unmarshal(buf, val)
+	return json.Unmarshal(buf, val)
 }
