@@ -4,6 +4,7 @@ import (
 	"context"
 	v1 "kratos-admin/api/user/service/v1"
 	"kratos-admin/internal/biz"
+	"kratos-admin/internal/data/model"
 	"kratos-admin/pkg/util/hashx"
 	"kratos-admin/pkg/util/pagination"
 	"kratos-admin/pkg/util/timex"
@@ -19,18 +20,20 @@ import (
 var _ biz.UserRepo = (*userRepo)(nil)
 
 // UserPO  持久化对象，与数据库结构一一映射，它是数据持久化过程中的数据载体。
-type UserPO struct {
-	Id        uint   `gorm:"primarykey"`
-	UserId    uint32 `gorm:"not null;index:idx_user_id;"`
-	Age       uint32 `gorm:"not null;"`
-	UserName  string `gorm:"not null;size:32;;index:idx_user_name;"`
-	Password  string `gorm:"not null;size:64;"`
-	Email     string `gorm:"not null;size:128;unique;"`
-	Phone     string `gorm:"not null;size:11;"`
-	RoleName  string `gorm:"not null;size:10;"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
+//type UserPO struct {
+//	Id        uint   `gorm:"primarykey"`
+//	UserId    uint32 `gorm:"not null;index:idx_user_id;"`
+//	Age       uint32 `gorm:"not null;"`
+//	UserName  string `gorm:"not null;size:32;;index:idx_user_name;"`
+//	Password  string `gorm:"not null;size:64;"`
+//	Email     string `gorm:"not null;size:128;unique;"`
+//	Phone     string `gorm:"not null;size:11;"`
+//	RoleName  string `gorm:"not null;size:10;"`
+//	CreatedAt time.Time
+//	UpdatedAt time.Time
+//}
+
+type UserPO model.User
 
 // 入参 do-> po
 // 响应 po -> do
@@ -48,8 +51,8 @@ func NewUserRepo(data *Data, logger log.Logger) biz.UserRepo {
 }
 
 func (po *UserPO) DOFactory(do *biz.UserDO) {
-	do.Id = po.Id
-	do.UserId = po.UserId
+	do.Id = po.ID
+	do.UserId = po.UserID
 	do.Age = po.Age
 	do.UserName = po.UserName
 	do.Password = po.Password
@@ -61,44 +64,43 @@ func (po *UserPO) DOFactory(do *biz.UserDO) {
 
 }
 
-func (po *UserPO) POFactory(do *biz.UserDO) {
-	po.Id = do.Id
-	po.UserId = do.UserId
-	po.Age = do.Age
-	po.UserName = do.UserName
-	po.Password = do.Password
-	po.Email = do.Email
-	po.Phone = do.Phone
-	po.RoleName = do.RoleName
+func POFactory(do *biz.UserDO) *model.User {
+	return &model.User{
+		ID:       do.Id,
+		UserID:   do.UserId,
+		Age:      do.Age,
+		UserName: do.UserName,
+		Password: do.Password,
+		Email:    do.Email,
+		Phone:    do.Phone,
+		RoleName: do.RoleName,
+	}
 }
 
 func (po *UserPO) TableName() string {
 	return "user"
 }
 
-func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID uint32, err error) {
-	po := new(UserPO)
-	po.POFactory(do)
-
+func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID int64, err error) {
+	po := POFactory(do)
 	po.Password = hashx.MD5String(do.Password)
-	po.UserId = uuidx.GenID()
-	if err = u.data.db.WithContext(ctx).Create(po).Error; err != nil {
+	po.UserID = int64(uuidx.GenID())
+	if err = u.data.sqlClient.User.WithContext(ctx).Create(po); err != nil {
 		return
 	}
 
-	userID = po.UserId
+	userID = po.UserID
 	return
 }
 
 func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) error {
-	po := new(UserPO)
-	po.POFactory(do)
+	po := POFactory(do)
 	po.UpdatedAt = time.Now()
 
 	return u.data.db.WithContext(ctx).Updates(po).Error
 }
 
-func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
+func (u *userRepo) DeleteUser(ctx context.Context, userId int64) error {
 	result := u.data.db.WithContext(ctx).Where("user_id = ?", userId).Delete(&UserPO{})
 	if result.Error != nil {
 		return errors.Wrapf(result.Error, "data: deleted user failed, userID[%d]", userId)
@@ -111,7 +113,7 @@ func (u *userRepo) DeleteUser(ctx context.Context, userId uint32) error {
 	return nil
 }
 
-func (u *userRepo) SelectUserByUid(ctx context.Context, userId uint32) (do *biz.UserDO, err error) {
+func (u *userRepo) SelectUserByUid(ctx context.Context, userId int64) (do *biz.UserDO, err error) {
 	var (
 		userPO UserPO
 	)
@@ -127,7 +129,7 @@ func (u *userRepo) SelectUserByUid(ctx context.Context, userId uint32) (do *biz.
 	return
 }
 
-func (u *userRepo) SelectUserByID(ctx context.Context, id uint) (do *biz.UserDO, err error) {
+func (u *userRepo) SelectUserByID(ctx context.Context, id int64) (do *biz.UserDO, err error) {
 	var (
 		userPO UserPO
 	)
@@ -157,8 +159,8 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doLi
 	doList = make([]*biz.UserDO, 0, len(poList))
 	for _, po := range poList {
 		doList = append(doList, &biz.UserDO{
-			Id:        po.Id,
-			UserId:    po.UserId,
+			Id:        po.ID,
+			UserId:    po.UserID,
 			UserName:  po.UserName,
 			Password:  po.Password,
 			Email:     po.Email,

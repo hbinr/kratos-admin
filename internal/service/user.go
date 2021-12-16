@@ -31,7 +31,7 @@ func NewUserService(uc *biz.UserUsecase, logger log.Logger) *UserService {
 func (us *UserService) Register(ctx context.Context, req *pb.RegisterReq) (reply *pb.RegisterReply, err error) {
 	var (
 		userDO biz.UserDO
-		userID uint32
+		userID int64
 	)
 
 	if err = copier.Copy(&userDO, req); err != nil {
@@ -44,7 +44,7 @@ func (us *UserService) Register(ctx context.Context, req *pb.RegisterReq) (reply
 	}
 
 	reply = new(pb.RegisterReply)
-	reply.UserId = userID
+	reply.UserId = uint32(userID)
 	return
 }
 
@@ -65,7 +65,7 @@ func (us *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserReq) (r
 		return
 	}
 
-	userRes, err := us.userBiz.Get(ctx, uint(req.Id))
+	userRes, err := us.userBiz.Get(ctx, req.Id)
 	if err != nil {
 		return
 	}
@@ -79,7 +79,7 @@ func (us *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserReq) (r
 
 func (us *UserService) DeleteUser(ctx context.Context, req *pb.DeleteUserReq) (reply *pb.DeleteUserReply, err error) {
 	reply = &pb.DeleteUserReply{Ok: true}
-	if err = us.userBiz.Delete(ctx, req.UserId); err != nil {
+	if err = us.userBiz.Delete(ctx, int64(req.UserId)); err != nil {
 		reply.Ok = false
 		return
 	}
@@ -91,7 +91,7 @@ func (us *UserService) GetUser(ctx context.Context, req *pb.GetUserReq) (reply *
 	var (
 		userRes *biz.UserDO
 	)
-	if userRes, err = us.userBiz.GetByUID(ctx, req.GetUserId()); err != nil {
+	if userRes, err = us.userBiz.GetByUID(ctx, int64(req.GetUserId())); err != nil {
 		return nil, err
 	}
 

@@ -117,3 +117,9 @@ help:
 	{ lastLine = $$0 }' $(MAKEFILE_LIST)
 
 .DEFAULT_GOAL := help
+
+gen-data:
+	gentool -dsn "root:123456@tcp(127.0.0.1:3306)/study?charset=utf8mb4&parseTime=True&loc=Local" \
+    -tables "user" \
+    -outPath "./internal/data/query" \
+    -modelPkgName "model"
