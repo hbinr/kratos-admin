@@ -4,7 +4,7 @@ import (
 	"context"
 	v1 "kratos-admin/api/user/service/v1"
 	"kratos-admin/internal/biz"
-	"kratos-admin/internal/data/model"
+	"kratos-admin/internal/data/entity"
 	"kratos-admin/pkg/util/hashx"
 	"kratos-admin/pkg/util/pagination"
 	"kratos-admin/pkg/util/timex"
@@ -19,24 +19,6 @@ import (
 
 var _ biz.UserRepo = (*userRepo)(nil)
 
-// UserPO  持久化对象，与数据库结构一一映射，它是数据持久化过程中的数据载体。
-//type UserPO struct {
-//	Id        uint   `gorm:"primarykey"`
-//	UserId    uint32 `gorm:"not null;index:idx_user_id;"`
-//	Age       uint32 `gorm:"not null;"`
-//	UserName  string `gorm:"not null;size:32;;index:idx_user_name;"`
-//	Password  string `gorm:"not null;size:64;"`
-//	Email     string `gorm:"not null;size:128;unique;"`
-//	Phone     string `gorm:"not null;size:11;"`
-//	RoleName  string `gorm:"not null;size:10;"`
-//	CreatedAt time.Time
-//	UpdatedAt time.Time
-//}
-
-type UserPO model.User
-
-// 入参 do-> po
-// 响应 po -> do
 type userRepo struct {
 	data *Data
 	log  *log.Helper
@@ -50,22 +32,12 @@ func NewUserRepo(data *Data, logger log.Logger) biz.UserRepo {
 	}
 }
 
-func (po *UserPO) DOFactory(do *biz.UserDO) {
-	do.Id = po.ID
-	do.UserId = po.UserID
-	do.Age = po.Age
-	do.UserName = po.UserName
-	do.Password = po.Password
-	do.Email = po.Email
-	do.Phone = po.Phone
-	do.RoleName = po.RoleName
-	do.CreatedAt = timex.DateToString(po.CreatedAt)
-	do.UpdatedAt = timex.DateToString(po.UpdatedAt)
+// 入参 do -> po
+// 响应 po -> do
 
-}
-
-func POFactory(do *biz.UserDO) *model.User {
-	return &model.User{
+// NewUserPO UserPO  持久化对象，与数据库结构一一映射，它是数据持久化过程中的数据载体。
+func NewUserPO(do *biz.UserDO) *entity.User {
+	return &entity.User{
 		ID:       do.Id,
 		UserID:   do.UserId,
 		Age:      do.Age,
@@ -77,12 +49,23 @@ func POFactory(do *biz.UserDO) *model.User {
 	}
 }
 
-func (po *UserPO) TableName() string {
-	return "user"
+func NewUserDO(po *entity.User) *biz.UserDO {
+	return &biz.UserDO{
+		Id:        po.ID,
+		Age:       po.Age,
+		UserId:    po.UserID,
+		UserName:  po.UserName,
+		Password:  po.Password,
+		Email:     po.Email,
+		Phone:     po.Phone,
+		RoleName:  po.RoleName,
+		CreatedAt: timex.DateToString(po.CreatedAt),
+		UpdatedAt: timex.DateToString(po.UpdatedAt),
+	}
 }
 
 func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID int64, err error) {
-	po := POFactory(do)
+	po := NewUserPO(do)
 	po.Password = hashx.MD5String(do.Password)
 	po.UserID = int64(uuidx.GenID())
 	if err = u.data.sqlClient.User.WithContext(ctx).Create(po); err != nil {
@@ -94,65 +77,60 @@ func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID int64
 }
 
 func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) error {
-	po := POFactory(do)
-	po.UpdatedAt = time.Now()
+	user := u.data.sqlClient.User
 
-	return u.data.db.WithContext(ctx).Updates(po).Error
+	po := NewUserPO(do)
+	po.UpdatedAt = time.Now()
+	_, err := user.WithContext(ctx).Where(user.ID.Eq(po.ID)).Updates(po)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (u *userRepo) DeleteUser(ctx context.Context, userId int64) error {
-	result := u.data.db.WithContext(ctx).Where("user_id = ?", userId).Delete(&UserPO{})
-	if result.Error != nil {
-		return errors.Wrapf(result.Error, "data: deleted user failed, userID[%d]", userId)
+	user := u.data.sqlClient.User
+	if _, err := user.WithContext(ctx).Where(user.UserID.Eq(userId)).Delete(); err != nil {
+		return errors.Wrapf(err, "data: deleted user failed, userID[%d]", userId)
 	}
 
-	if result.RowsAffected <= 0 {
-		// 响应结果中 message 字段值就是 format 参数
-		return v1.ErrorUserNotFound("data: user_id = %d", userId)
-	}
 	return nil
 }
 
 func (u *userRepo) SelectUserByUid(ctx context.Context, userId int64) (do *biz.UserDO, err error) {
-	var (
-		userPO UserPO
-	)
-	if err = u.data.db.WithContext(ctx).Where("user_id = ?", userId).Take(&userPO).Error; err != nil {
+	user := u.data.sqlClient.User
+	res, err := user.WithContext(ctx).Where(user.UserID.Eq(userId)).Take()
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = v1.ErrorUserNotFound("data: userId = %d", userId)
 		}
 		return
 	}
 
-	do = new(biz.UserDO)
-	userPO.DOFactory(do)
+	do = NewUserDO(res)
 	return
 }
 
 func (u *userRepo) SelectUserByID(ctx context.Context, id int64) (do *biz.UserDO, err error) {
-	var (
-		userPO UserPO
-	)
-	if err = u.data.db.WithContext(ctx).Where("id = ?", id).First(&userPO).Error; err != nil {
+	user := u.data.sqlClient.User
+	res, err := user.WithContext(ctx).Where(user.ID.Eq(id)).Take()
+
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = v1.ErrorUserNotFound("data: id = %d", id)
 		}
 		return
 	}
 
-	do = new(biz.UserDO)
-	userPO.DOFactory(do)
+	do = NewUserDO(res)
 	return
 }
 func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doList []*biz.UserDO, err error) {
-	var poList []UserPO
-	result := u.data.db.WithContext(ctx).
-		Limit(int(pageSize)).
-		Offset(int(pagination.GetPageOffset(pageNum, pageSize))).
-		Find(&poList)
+	user := u.data.sqlClient.User
+	poList, err := user.WithContext(ctx).Limit(int(pageSize)).Offset(int(pagination.GetPageOffset(pageNum, pageSize))).Find()
 
-	if result.Error != nil {
-		err = result.Error
+	if err != nil {
 		return
 	}
 
@@ -175,8 +153,9 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doLi
 }
 
 func (u *userRepo) VerifyPassword(ctx context.Context, do *biz.UserDO) (isCorrect bool, err error) {
-	var po UserPO
-	if err = u.data.db.WithContext(ctx).Where("user_name = ?", do.UserName).Take(&po).Error; err != nil {
+	user := u.data.sqlClient.User
+	var po *entity.User
+	if po, err = user.WithContext(ctx).Where(user.UserName.Eq(do.UserName)).Take(); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = v1.ErrorUserNotFound("data: user_name = %s", do.UserName)
 		}
@@ -192,33 +171,28 @@ func (u *userRepo) VerifyPassword(ctx context.Context, do *biz.UserDO) (isCorrec
 }
 
 func (u *userRepo) SelectUserByEmail(ctx context.Context, email string) (do *biz.UserDO, err error) {
-	var (
-		userPO UserPO
-	)
-	if err = u.data.db.WithContext(ctx).Where("email = ?", email).Take(&userPO).Error; err != nil {
+	user := u.data.sqlClient.User
+	var po *entity.User
+	if po, err = user.WithContext(ctx).Where(user.Email.Eq(email)).Take(); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = v1.ErrorUserNotFound("data: email = %s", email)
 		}
 		return
 	}
 
-	do = new(biz.UserDO)
-	userPO.DOFactory(do)
+	do = NewUserDO(po)
 	return
 }
 
 func (u *userRepo) SelectUserByName(ctx context.Context, userName string) (do *biz.UserDO, err error) {
-	var (
-		userPO UserPO
-	)
-	if err = u.data.db.WithContext(ctx).Where("user_name = ?", userName).Take(&userPO).Error; err != nil {
+	user := u.data.sqlClient.User
+	var po *entity.User
+	if po, err = user.WithContext(ctx).Where(user.UserName.Eq(userName)).Take(); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = v1.ErrorUserNotFound("data: user_name = %s", userName)
 		}
 		return
 	}
-
-	do = new(biz.UserDO)
-	userPO.DOFactory(do)
+	do = NewUserDO(po)
 	return
 }

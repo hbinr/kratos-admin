@@ -2,7 +2,7 @@ package data
 
 import (
 	"kratos-admin/internal/conf"
-	"kratos-admin/internal/data/query"
+	"kratos-admin/internal/data/dao"
 	"kratos-admin/internal/pkg/cache"
 	"kratos-admin/internal/pkg/database"
 
@@ -18,13 +18,13 @@ var (
 
 // Data .
 type Data struct {
-	sqlClient *query.Query
+	sqlClient *dao.Query
 	rdb       *redis.Client
 }
 
 func NewData(conf *conf.Data) *Data {
 	data := new(Data)
-	data.sqlClient = query.Use(database.Init(conf))
+	data.sqlClient = dao.Use(database.Init(conf))
 	data.rdb = cache.Init(conf)
 	return data
 }
