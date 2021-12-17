@@ -31,8 +31,8 @@ type UserRepo interface {
 	CreateUser(context.Context, *UserDO) (int64, error)
 	UpdateUser(context.Context, *UserDO) error
 	DeleteUser(context.Context, int64) error
-	SelectUserByID(ctx context.Context, id int64) (*UserDO, error)
-	SelectUserByUid(ctx context.Context, userId int64) (*UserDO, error)
+	SelectUserByID(ctx context.Context, ID int64) (*UserDO, error)
+	SelectUserByUid(ctx context.Context, userID int64) (*UserDO, error)
 	ListUser(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error)
 	VerifyPassword(context.Context, *UserDO) (bool, error)
 	SelectUserByEmail(context.Context, string) (*UserDO, error)
@@ -59,16 +59,16 @@ func (uc *UserUsecase) Update(ctx context.Context, user *UserDO) error {
 	return uc.repo.UpdateUser(ctx, user)
 }
 
-func (uc *UserUsecase) Delete(ctx context.Context, userId int64) error {
-	return uc.repo.DeleteUser(ctx, userId)
+func (uc *UserUsecase) Delete(ctx context.Context, userID int64) error {
+	return uc.repo.DeleteUser(ctx, userID)
 }
 
-func (uc *UserUsecase) Get(ctx context.Context, id int64) (*UserDO, error) {
-	return uc.repo.SelectUserByID(ctx, id)
+func (uc *UserUsecase) Get(ctx context.Context, ID int64) (*UserDO, error) {
+	return uc.repo.SelectUserByID(ctx, ID)
 }
 
-func (uc *UserUsecase) GetByUID(ctx context.Context, userId int64) (*UserDO, error) {
-	return uc.repo.SelectUserByUid(ctx, userId)
+func (uc *UserUsecase) GetByUID(ctx context.Context, userID int64) (*UserDO, error) {
+	return uc.repo.SelectUserByUid(ctx, userID)
 }
 
 func (uc *UserUsecase) List(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error) {

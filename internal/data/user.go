@@ -89,21 +89,21 @@ func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) error {
 	return nil
 }
 
-func (u *userRepo) DeleteUser(ctx context.Context, userId int64) error {
+func (u *userRepo) DeleteUser(ctx context.Context, userID int64) error {
 	user := u.data.sqlClient.User
-	if _, err := user.WithContext(ctx).Where(user.UserID.Eq(userId)).Delete(); err != nil {
-		return errors.Wrapf(err, "data: deleted user failed, userID[%d]", userId)
+	if _, err := user.WithContext(ctx).Where(user.UserID.Eq(userID)).Delete(); err != nil {
+		return errors.Wrapf(err, "data: deleted user failed, userID = %d", userID)
 	}
 
 	return nil
 }
 
-func (u *userRepo) SelectUserByUid(ctx context.Context, userId int64) (do *biz.UserDO, err error) {
+func (u *userRepo) SelectUserByUid(ctx context.Context, userID int64) (do *biz.UserDO, err error) {
 	user := u.data.sqlClient.User
-	res, err := user.WithContext(ctx).Where(user.UserID.Eq(userId)).Take()
+	res, err := user.WithContext(ctx).Where(user.UserID.Eq(userID)).Take()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = v1.ErrorUserNotFound("data: userId = %d", userId)
+			err = v1.ErrorUserNotFound("data: userID = %d", userID)
 		}
 		return
 	}
