@@ -1,5 +1,5 @@
 package pagination
 
-func GetPageOffset(pageNum, pageSize uint32) uint32 {
+func GetPageOffset(pageNum, pageSize int) int {
 	return (pageNum - 1) * pageSize
 }

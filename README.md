@@ -1,4 +1,5 @@
 # Kratos Project Template
+学习 kratos 项目时写的练手项目
 
 - main 分支，路由模块使用的是 Kratos 提供的 http 模块，为主分支
 - kratos-http-template 分支，路由模块使用的是 Kratos 提供的 http 模块

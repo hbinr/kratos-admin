@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v0.6.1
-	github.com/go-kratos/kratos/v2 v2.1.2
+	github.com/go-kratos/kratos/v2 v2.1.3
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/google/wire v0.5.0

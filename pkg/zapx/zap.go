@@ -35,13 +35,15 @@ func NewZapLogger() *ZapLogger {
 
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoder),
-		zapcore.NewMultiWriteSyncer(
-			zapcore.AddSync(os.Stdout),
-		), zap.NewAtomicLevelAt(zapcore.DebugLevel))
+		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout)),
+		zap.NewAtomicLevelAt(zapcore.DebugLevel))
 
 	zapLogger := zap.New(core,
-		zap.AddStacktrace(
-			zap.NewAtomicLevelAt(zapcore.ErrorLevel)),
+		// zap.AddStacktrace(zap.NewAtomicLevelAt(zapcore.ErrorLevel)),
+		// zap提供了Sugar和Desugar的模式，所谓Sugar就是提供程序员更友好方便的日志记录方式，但是牺牲了部分性能，核心就是Caller的skipCaller+2。
+		// Desugar就是个逆向的过程，可以将Sugared的结构再次回退到性能较高的原始模式，核心是Caller的callerSkip-2
+		// 2 不会输出包装 zap 的日志记录,eg: 本项目中, 会输出 zapx.zap.go 54 log方法中的case行数等细节
+		// -2 会输出包装 zap 的日志记录
 		zap.AddCallerSkip(2),
 		zap.Development())
 

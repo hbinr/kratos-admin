@@ -33,7 +33,7 @@ type UserRepo interface {
 	DeleteUser(context.Context, int64) error
 	SelectUserByID(ctx context.Context, ID int64) (*UserDO, error)
 	SelectUserByUid(ctx context.Context, userID int64) (*UserDO, error)
-	ListUser(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error)
+	ListUser(ctx context.Context, pageNum, pageSize int) ([]*UserDO, error)
 	VerifyPassword(context.Context, *UserDO) (bool, error)
 	SelectUserByEmail(context.Context, string) (*UserDO, error)
 	SelectUserByName(context.Context, string) (*UserDO, error)
@@ -72,7 +72,7 @@ func (uc *UserUsecase) GetByUID(ctx context.Context, userID int64) (*UserDO, err
 }
 
 func (uc *UserUsecase) List(ctx context.Context, pageNum, pageSize uint32) ([]*UserDO, error) {
-	return uc.repo.ListUser(ctx, pageNum, pageSize)
+	return uc.repo.ListUser(ctx, int(pageNum), int(pageSize))
 }
 
 func (uc UserUsecase) Validate(ctx context.Context, user *UserDO) (err error) {
@@ -81,7 +81,6 @@ func (uc UserUsecase) Validate(ctx context.Context, user *UserDO) (err error) {
 	if err != nil && !v1.IsUserNotFound(err) {
 		return err
 	}
-
 	if userDO != nil {
 		return v1.ErrorUserHasExist("%s has exist", user.UserName)
 	}

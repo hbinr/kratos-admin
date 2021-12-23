@@ -36,7 +36,7 @@ func NewUserRepo(data *Data, logger log.Logger) biz.UserRepo {
 // 响应 po -> do
 
 // NewUserPO UserPO  持久化对象，与数据库结构一一映射，它是数据持久化过程中的数据载体。
-func NewUserPO(do *biz.UserDO) *entity.User {
+func (u userRepo) NewUserPO(do *biz.UserDO) *entity.User {
 	return &entity.User{
 		ID:       do.Id,
 		UserID:   do.UserId,
@@ -49,7 +49,7 @@ func NewUserPO(do *biz.UserDO) *entity.User {
 	}
 }
 
-func NewUserDO(po *entity.User) *biz.UserDO {
+func (u userRepo) NewUserDO(po *entity.User) *biz.UserDO {
 	return &biz.UserDO{
 		Id:        po.ID,
 		Age:       po.Age,
@@ -65,7 +65,7 @@ func NewUserDO(po *entity.User) *biz.UserDO {
 }
 
 func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID int64, err error) {
-	po := NewUserPO(do)
+	po := u.NewUserPO(do)
 	po.Password = hashx.MD5String(do.Password)
 	po.UserID = int64(uuidx.GenID())
 	if err = u.data.sqlClient.User.WithContext(ctx).Create(po); err != nil {
@@ -79,7 +79,7 @@ func (u *userRepo) CreateUser(ctx context.Context, do *biz.UserDO) (userID int64
 func (u *userRepo) UpdateUser(ctx context.Context, do *biz.UserDO) error {
 	user := u.data.sqlClient.User
 
-	po := NewUserPO(do)
+	po := u.NewUserPO(do)
 	po.UpdatedAt = time.Now()
 	_, err := user.WithContext(ctx).Where(user.ID.Eq(po.ID)).Updates(po)
 	if err != nil {
@@ -108,7 +108,7 @@ func (u *userRepo) SelectUserByUid(ctx context.Context, userID int64) (do *biz.U
 		return
 	}
 
-	do = NewUserDO(res)
+	do = u.NewUserDO(res)
 	return
 }
 
@@ -123,12 +123,12 @@ func (u *userRepo) SelectUserByID(ctx context.Context, id int64) (do *biz.UserDO
 		return
 	}
 
-	do = NewUserDO(res)
+	do = u.NewUserDO(res)
 	return
 }
-func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize uint32) (doList []*biz.UserDO, err error) {
+func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize int) (doList []*biz.UserDO, err error) {
 	user := u.data.sqlClient.User
-	poList, err := user.WithContext(ctx).Limit(int(pageSize)).Offset(int(pagination.GetPageOffset(pageNum, pageSize))).Find()
+	poList, err := user.WithContext(ctx).Limit(pageSize).Offset(pagination.GetPageOffset(pageNum, pageSize)).Find()
 
 	if err != nil {
 		return
@@ -180,7 +180,7 @@ func (u *userRepo) SelectUserByEmail(ctx context.Context, email string) (do *biz
 		return
 	}
 
-	do = NewUserDO(po)
+	do = u.NewUserDO(po)
 	return
 }
 
@@ -193,6 +193,6 @@ func (u *userRepo) SelectUserByName(ctx context.Context, userName string) (do *b
 		}
 		return
 	}
-	do = NewUserDO(po)
+	do = u.NewUserDO(po)
 	return
 }
