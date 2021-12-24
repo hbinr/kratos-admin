@@ -136,18 +136,7 @@ func (u *userRepo) ListUser(ctx context.Context, pageNum, pageSize int) (doList 
 
 	doList = make([]*biz.UserDO, 0, len(poList))
 	for _, po := range poList {
-		doList = append(doList, &biz.UserDO{
-			Id:        po.ID,
-			UserId:    po.UserID,
-			UserName:  po.UserName,
-			Password:  po.Password,
-			Email:     po.Email,
-			Phone:     po.Phone,
-			Age:       po.Age,
-			RoleName:  po.RoleName,
-			CreatedAt: timex.DateToString(po.CreatedAt),
-			UpdatedAt: timex.DateToString(po.CreatedAt),
-		})
+		doList = append(doList, u.NewUserDO(po))
 	}
 	return
 }
