@@ -115,7 +115,7 @@ func (us *UserService) ListUser(ctx context.Context, req *pb.ListUserReq) (reply
 		req.PageSize = 10
 	}
 
-	if userDOList, err = us.userBiz.List(ctx, req.PageNum, req.GetPageSize()); err != nil {
+	if userDOList, err = us.userBiz.List(ctx, req.GetPageNum(), req.GetPageSize()); err != nil {
 		return
 	}
 
