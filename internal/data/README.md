@@ -26,3 +26,9 @@
 ## PO 对象的具体作用？
 
 与数据库结构一一映射，它是数据持久化过程中的数据载体
+
+
+## gorm-gen SQL生成命令
+```
+gentool -dsn "root:123456@tcp(127.0.0.1:3306)/study?charset=utf8mb4&parseTime=True&loc=Local" -tables "user" -outPath "./data/dao" -modelPkgName "entity" 
+```
