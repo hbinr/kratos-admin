@@ -56,7 +56,7 @@ func (uc UserUsecase) Validate(ctx context.Context, user *UserDO) (err error) {
 		return err
 	}
 	if userDO != nil {
-		return v1.ErrorUserHasExist("%s has exist", user.UserName)
+		return v1.ErrorUserHasExist("%s has existed", user.UserName)
 	}
 
 	userDO, err = uc.repo.SelectUserByEmail(ctx, user.Email)
@@ -65,7 +65,7 @@ func (uc UserUsecase) Validate(ctx context.Context, user *UserDO) (err error) {
 	}
 
 	if userDO != nil {
-		return v1.ErrorEmailHasExist("%s has exist", user.Email)
+		return v1.ErrorEmailHasExist("%s has existed", user.Email)
 	}
 
 	return nil
